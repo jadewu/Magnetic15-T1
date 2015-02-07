@@ -1,0 +1,89 @@
+#graph1
+{
+  position: absolute;
+  top: 165px;
+  bottom: 0%;
+  left: 1%;
+  width: 60%;
+}
+#length
+{
+  position: absolute;
+  bottom: 1%;
+  right: 2%;
+}
+#controlPanel
+{
+  position: absolute;
+  top: 5%;
+  right: 1%;
+  width: 40%;
+  height: 90%;
+  border: 1 solid;
+}
+.label
+{
+  font-family: "Impact, Charcoal, sans-serif";
+  font-size: 12px;
+  font-weight: bold;
+}
+#btDeviceName
+{
+  border-color: lightblue;
+  border-style: solid;
+  border-radius: 4px;
+  text-align: center;
+  padding: 6px;
+  width: 200px;
+}
+.textBox
+{
+  border-color: lightblue;
+  border-style: solid;
+  border-radius: 4px;
+  text-align: center;
+  padding: 6px;
+  margin: 0px;
+  width: 100px;
+}
+.myButton
+{
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-left: 5px;
+  padding-right: 5px;
+  width: 100px;
+  
+  font-family: "Comic Sans MS, cursive, sans-serif";
+}
+#graphScale
+{
+  position: absolute;
+  top: 23px;
+  left: 250px;
+}
+#loading
+{
+  height: 16px;
+  padding-left: 10px;
+  vertical-align: middle;
+}
+*:focus  
+{  
+  outline: none;  
+}
+#channelNum
+{
+  position: absolute;
+  top: 20px;
+  left: 435px;
+}
+#channelType
+{
+  margin-top: 8px;
+  width: 125px;
+  height: 95px;
+  resize: none;
+  border: 2px solid;
+  border-color: lightblue;
+}
