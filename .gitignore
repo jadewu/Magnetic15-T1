@@ -6,6 +6,7 @@
 !img/*
 !js/*
 !page/*
+!manifest.json
 
 # Ignore additional files in root dir
 # Eclipse

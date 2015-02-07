@@ -1,0 +1,32 @@
+{
+	"manifest_version": 2,
+
+	"name": "pGrapher",
+	"minimum_chrome_version": "37",
+	"description": "PeterLau's App",
+	"version": "2.2",
+
+	"icons":
+	{
+		"128": "img/path.ico"
+	},
+
+	"app":
+	{
+  	"background":
+  	{
+  		"scripts": ["js/background.js", "js/Chart_js-master/Chart.js"]
+  	}
+  },
+
+	"bluetooth":
+	{
+		"socket": true,
+		"uuids": [ "00001101-0000-1000-8000-00805f9b34fb", "00001105-0000-1000-8000-00805f9b34fb" ]
+	},
+	
+	"permissions": ["alwaysOnTopWindows", "storage"],
+
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
+
+}
