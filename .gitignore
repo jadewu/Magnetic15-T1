@@ -2,6 +2,10 @@
 */*
 !inc/*
 !src/*
+!css/*
+!img/*
+!js/*
+!page/*
 
 # Ignore additional files in root dir
 # Eclipse
