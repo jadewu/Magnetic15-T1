@@ -12,12 +12,21 @@
 using namespace libsc::k60;
 using namespace std;
 
-AlternateMotor::Config getMotorConfig(const uint8_t id)
+MySmartCar *m_msc_instance;
+
+AlternateMotor::Config getAlterMotorConfig(const uint8_t id)
 {
 	AlternateMotor::Config config;
 	config.id = id;
 	return config;
 }
+DirMotor::Config getDirMotorConfig(const uint8_t id)
+{
+	DirMotor::Config config;
+	config.id = id;
+	return config;
+}
+
 
 UartDevice::Config getUartConfig(const uint8_t id)
 {
@@ -56,7 +65,10 @@ St7735r::Config getLcdConfig()
 
 void MySmartCar::reset(void)
 {
-	myLed.SetEnable(false);
+	myLed0.SetEnable(false);
+	myLed1.SetEnable(false);
+	myLed2.SetEnable(false);
+	myLed3.SetEnable(false);
 	myMotor.SetClockwise(true);
 	myServo.SetDegree(900);
 	myMotor.SetPower(0);
@@ -84,18 +96,24 @@ void MySmartCar::turnRight(const uint16_t degree_x10)
 	myServo.SetDegree(900 - new_degree_x10);
 }
 
-void MySmartCar::startBlinking(bool Enabled)
+void MySmartCar::doBlink(Byte id)
 {
-	isBlinking = Enabled;
+	switch (id)
+	{
+	case 0:
+		myLed0.Switch();
+		break;
+	case 1:
+		myLed1.Switch();
+		break;
+	case 2:
+		myLed2.Switch();
+		break;
+	case 3:
+		myLed3.Switch();
+		break;
+	}
 }
-
-void MySmartCar::doBlink(void)
-{
-	if (isBlinking)
-		myLed.Switch();
-}
-
-MySmartCar* m_instance;
 
 void MySmartCar::ExecuteCommand(const Byte *bytes, const size_t size)
 {
@@ -105,93 +123,84 @@ void MySmartCar::ExecuteCommand(const Byte *bytes, const size_t size)
 	switch (bytes[0])
 	{
 	case CMD_FORWARD:
-		m_instance->setSpeed(m_instance->car_speed);
+		m_msc_instance->setSpeed(m_msc_instance->car_speed);
 		break;
 
 	case CMD_BACKWARD:
-		m_instance->setSpeed((int16_t)-m_instance->car_speed);
+		m_msc_instance->setSpeed((int16_t)-m_msc_instance->car_speed);
 		break;
 
 	case CMD_LEFT:
-		m_instance->turnLeft(m_instance->turning_angle);
+		m_msc_instance->turnLeft(m_msc_instance->turning_angle);
 		break;
 
 	case CMD_RIGHT:
-		m_instance->turnRight(m_instance->turning_angle);
+		m_msc_instance->turnRight(m_msc_instance->turning_angle);
 		break;
 
 	case CMD_FRONT:
-		m_instance->turnLeft(0);
+		m_msc_instance->turnLeft(0);
 		break;
 
 	case CMD_STOP:
-		m_instance->setSpeed(0);
+		m_msc_instance->setSpeed(0);
 		break;
 
 	case CMD_RESET:
-		m_instance->turnLeft(0);
-		m_instance->setSpeed(0);
+		m_msc_instance->turnLeft(0);
+		m_msc_instance->setSpeed(0);
 		break;
 
 	case CMD_SETANGLE:
-		m_instance->turning_angle = bytes[1] * 10;
+		m_msc_instance->turning_angle = bytes[1] * 10;
 		break;
 
 	case CMD_SETSPEED:
-		m_instance->car_speed = bytes[1] * 10;
+		m_msc_instance->car_speed = bytes[1] * 10;
 		break;
-//	case 'x':
 	case 's':
-		m_instance->btStarted = true;
-		m_instance->myUart.SendBuffer((Byte *)"/", 1);
-		// TODO: Start with sth special.
+		m_msc_instance->myVarMng.sendWatchData();
+		m_msc_instance->myVarMng.Init();
+//		m_msc_instance->btStarted = true;
+//		m_msc_instance->myUart.SendBuffer((Byte *)"/", 1);
 		break;
 	case 'e':
-		m_instance->btStarted = false;
+		m_msc_instance->myVarMng.UnInit();
+//		m_msc_instance->btStarted = false;
 		break;
-
-/* Game:
-	case 'q':
-		m_instance->isGameStarted = true;
-		break;
-	case 'w':
-		m_instance->nextAction = 1;
-		break;
-	case 's':
-		m_instance->nextAction = 2;
-		break;
-	case 'a':
-		m_instance->nextAction = 3;
-		break;
-	case 'd':
-		m_instance->nextAction = 4;
-		break;
-	case 'p':
-		m_instance->isPaused = !m_instance->isPaused;
-/*/
-
 	}
 }
 
-void MySmartCar::plotData(const Byte *data, const size_t len)
-{
-	if (btStarted)
-		myUart.SendBuffer(data, len);
-}
+//void MySmartCar::plotData(const Byte *data, const size_t len)
+//{
+//	if (btStarted)
+//		myUart.SendBuffer(data, len);
+//}
 
 MySmartCar::MySmartCar(void)
 :
-	myUart(getUartConfig(0)),
-	myLed({0}),
-	myMotor(getMotorConfig(0)),
+//	myUart(getUartConfig(0)),
+	myLed0({0}),
+	myLed1({1}),
+	myLed2({2}),
+	myLed3({3}),
+#ifdef LIBSC_MOTOR0_DIR
+	myMotor(getDirMotorConfig(0)),
+#else
+	myMotor(getAlterMotorConfig(0)),
+#endif
+	myVarMng(),
 	myServo({0}),
 	myLcd(getLcdConfig()),
-	myMagSensor(getAdcConfig())
-//	myAccel(getMma8451qConfig(0))
+	myMagSensor(getAdcConfig()),
+	myAccel(getMma8451qConfig(0)),
+	isClockWise(true),
+	car_speed(250),
+	turning_angle(450)
 {
-	m_instance = this;
+	m_msc_instance = this;
 	reset();
-	myUart.EnableRx(&ExecuteCommand);
+//	myUart.EnableRx(&ExecuteCommand);
 }
 
 MySmartCar::~MySmartCar(void) {}
