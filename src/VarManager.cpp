@@ -11,19 +11,11 @@
 //#ifdef LIBSC_USE_UART
 
 using namespace libbase::k60;
+using namespace libsc::k60;
 
-PlotData *m_pd_instance;
+VarManager *m_pd_instance;
 
-SysTick::Config PlotData::getTimerConfig()
-{
-	SysTick::Config config;
-	config.count = 20;
-	config.isr = &timer_tick;
-	config.is_enable = false;
-	return config;
-}
-
-FtdiFt232r::Config PlotData::getUartConfig(const uint8_t id)
+FtdiFt232r::Config VarManager::getUartConfig(const uint8_t id)
 {
 	FtdiFt232r::Config config;
 	config.id = id;
@@ -33,67 +25,149 @@ FtdiFt232r::Config PlotData::getUartConfig(const uint8_t id)
 	return config;
 }
 
-PlotData::PlotData(void)
+VarManager::VarManager(void)
 :
-	m_timer(getTimerConfig()),
 	m_uart(getUartConfig(0)),
 	isStarted(false)
 {
 	m_pd_instance = this;
 	System::Init();
-	sharedObjMng.ObjCount = 0;
-	watchingObjMng.ObjCount = 0;
-	sharedObjMng.ObjList = (void **)malloc(sizeof(void *) * max_obj_count);
-	watchingObjMng.ObjList = (void **)malloc(sizeof(void *) * max_obj_count);
 }
 
-PlotData::~PlotData()
+VarManager::~VarManager()
 {
-	free(sharedObjMng.ObjList);
-	free(watchingObjMng.ObjList);
+	sharedObjMng.clear();
+	watchedObjMng.clear();
 }
 
-void PlotData::listener(const Byte *bytes, const size_t size)
+VarManager::ObjMng::ObjMng()
+:
+	obj(nullptr),
+	typeName(""),
+	varName("")
+{}
+
+VarManager::ObjMng::~ObjMng()
+{}
+
+void VarManager::listener(const Byte *bytes, const size_t size)
 {
 	if (size != m_pd_instance->rx_threshold)
 		return ;
+
 	switch (bytes[0])
 	{
 	case 's':
-		m_pd_instance->m_timer.SetEnable(true);
+		m_pd_instance->isStarted = true;
 		break;
 
 	case 'e':
-		m_pd_instance->m_timer.SetEnable(false);
+		m_pd_instance->isStarted = false;
+		break;
+
+	case 'w':
+		m_pd_instance->sendWatchedVarInfo();
+		break;
+
+	case 'h':
+		m_pd_instance->sendSharedVarInfo();
+		break;
+
+	case 'c':
+		// TODO: change variable here
 		break;
 	}
+
+	if (m_pd_instance->m_origin_listener)
+		m_pd_instance->m_origin_listener(bytes, size);
 }
 
-void PlotData::timer_tick(SysTick *sys_tick)
+void VarManager::sendWatchData(void)
 {
-
+	if (isStarted)
+		for (Byte i = 0; i < watchedObjMng.size(); i++)
+			m_uart.SendBuffer((Byte *)watchedObjMng.at(i).obj, watchedObjMng.at(i).len);
 }
 
-void PlotData::Init()
+void VarManager::sendWatchedVarInfo(void)
 {
-	if (!isStarted)
-		m_uart.EnableRx(&listener);
+	m_uart.SendBuffer((Byte *)",", 1);
+	Byte n = watchedObjMng.size();
+	m_uart.SendBuffer((Byte *)&n, 1);
+	for (Byte i = 0; i < watchedObjMng.size(); i++)
+	{
+		ObjMng temp = watchedObjMng.at(i);
+		m_uart.SendBuffer((Byte *)temp.typeName.data(), temp.typeName.size() + 1);
+		m_uart.SendBuffer((Byte *)temp.varName.data(), temp.varName.size() + 1);
+		m_uart.SendBuffer((Byte *)",", 1);
+	}
+	m_uart.SendBuffer((Byte *)"end", 3);
 }
 
-void PlotData::shareVar(void *pObj, Byte len, const char *varName)
+void VarManager::sendSharedVarInfo(void)
+{
+	m_uart.SendBuffer((Byte *)".", 1);
+	Byte n = sharedObjMng.size();
+	m_uart.SendBuffer((Byte *)&n, 1);
+	for (Byte i = 0; i < sharedObjMng.size(); i++)
+	{
+		ObjMng temp = sharedObjMng.at(i);
+		m_uart.SendBuffer((Byte *)temp.typeName.data(), temp.typeName.size() + 1);
+		m_uart.SendBuffer((Byte *)temp.varName.data(), temp.varName.size() + 1);
+		m_uart.SendBuffer((Byte *)temp.obj, temp.len);
+		m_uart.SendBuffer((Byte *)".", 1);
+	}
+	m_uart.SendBuffer((Byte *)"end", 3);
+}
+
+void VarManager::Init(const FtdiFt232r::OnReceiveListener &oriListener)
 {
 	if (!isStarted)
 	{
-		sharedObjMng.ObjList[sharedObjMng.ObjCount++] = pObj;
-
+		m_origin_listener = oriListener;
+		m_uart.EnableRx(&listener);
 	}
 }
 
-void PlotData::watchVar(void *pObj, Byte len, const char *varName)
+void VarManager::Init(void)
 {
 	if (!isStarted)
 	{
+		if (!m_origin_listener)
+			m_origin_listener = nullptr;
+		m_uart.EnableRx(&listener);
+	}
+}
 
+void VarManager::UnInit(void)
+{
+	m_origin_listener = nullptr;
+	m_uart.DisableRx();
+}
+
+void VarManager::addSharedVar(void *pObj, const char *pTypeName, Byte size, const char *pVarName)
+{
+	if (!isStarted)
+	{
+		ObjMng newObjMng;
+		newObjMng.obj = pObj;
+		newObjMng.len = size;
+		newObjMng.typeName = std::string(pTypeName);
+		newObjMng.varName = std::string(pVarName);
+		sharedObjMng.push_back(newObjMng);
+	}
+}
+
+void VarManager::addWatchedVar(void *pObj, const char *pTypeName, Byte size, const char *pVarName)
+{
+	if (!isStarted)
+	{
+		ObjMng newObjMng;
+		newObjMng.obj = pObj;
+		newObjMng.len = size;
+		newObjMng.typeName = std::string(pTypeName);
+		newObjMng.varName = std::string(pVarName);
+		watchedObjMng.push_back(newObjMng);
 	}
 }
 

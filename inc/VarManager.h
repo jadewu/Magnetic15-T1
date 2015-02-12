@@ -16,45 +16,58 @@
 #include <libbase/k60/sys_tick.h>
 
 #include <cstdlib>
+#include <functional>
 
 using namespace libsc::k60;
 using namespace libbase::k60;
 
-union ObjMng
-{
-	void			**ObjList;
-	Byte			*LenList;
-	Byte			ObjCount;
-};
-
-class PlotData
+class VarManager
 {
 public:
 
-	explicit PlotData(void);
-	~PlotData(void);
+	class ObjMng
+	{
+	public:
 
+		ObjMng();
+		~ObjMng();
+
+		void						*obj;
+		Byte						len;
+		std::string					typeName;
+		std::string					varName;
+	};
+
+	explicit VarManager(void);
+	~VarManager(void);
+
+	void Init(const FtdiFt232r::OnReceiveListener &oriListener);
 	void Init(void);
-	void shareVar(void *pObj, Byte len, const char *varName);
-	void watchVar(void *pObj, Byte len, const char *varName);
+	void UnInit(void);
 
-	const Byte		max_obj_count = 10;
-	const Byte		rx_threshold = 5;
+	void addSharedVar(void *pObj, const char *pTypeName, Byte size, const char *pVarName);
+	void addWatchedVar(void *pObj, const char *pTypeName, Byte size, const char *pVarName);
+	void sendWatchData(void);
 
 private:
 
-	FtdiFt232r		m_uart;
-	SysTick			m_timer;
+	FtdiFt232r						m_uart;
 
-	ObjMng			sharedObjMng;
-	ObjMng			watchingObjMng;
+	FtdiFt232r::OnReceiveListener	m_origin_listener;
 
-	bool			isStarted;
+	std::vector<ObjMng>				sharedObjMng;
+	std::vector<ObjMng>				watchedObjMng;
+
+	bool							isStarted;
+	const Byte						rx_threshold = 6;
 
 	static void listener(const Byte *bytes, const size_t size);
-	static void timer_tick(SysTick *sys_tick);
+
 	SysTick::Config getTimerConfig(void);
 	FtdiFt232r::Config getUartConfig(const uint8_t id);
+
+	void sendWatchedVarInfo(void);
+	void sendSharedVarInfo(void);
 
 };
 
