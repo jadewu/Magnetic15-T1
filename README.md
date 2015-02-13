@@ -3,4 +3,5 @@ HKUST SmartCar 2015 - Magnetic Team 1
 
 By PeterLau
 
-For pGrapher.
+<h2>VarManager</h2>
+  For pGrapher.
