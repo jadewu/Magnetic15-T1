@@ -45,6 +45,7 @@ var hChannelOption;
 //
 var hTimer;
 var hLoadingTimer;
+var hGetVarsInfoTimer;
 
 //
 var tempFloat;
@@ -110,6 +111,9 @@ function(errorStr)
   hButtonPlot.value = "Start";
   chrome.bluetoothSocket.setPaused(curSocketId, false, generalErrorHandler);
   incompleteBytes = [];
+  DataConverter.nameList = [];
+  DataConverter.typeIndex = [];
+  DataConverter.byteCount = 0;
   closeAllSockets();
   if (isDefined(hTimer))
   {
@@ -156,20 +160,22 @@ function()
 var toArrayBuffer = 
 function(ch)
 {
-  var buf = new ArrayBuffer(2);
+  var buf = new ArrayBuffer(6);
   var arr = new Uint8Array(buf);
   arr[0] = ch.charCodeAt();
-  arr[1] = 0;
+  for (var i = 1; i < 6; i++)
+    arr[i] = 0;
   return buf;
 };
 
 var charCodetoArrayBuffer = 
 function(cc)
 {
-  var buf = new ArrayBuffer(2);
+  var buf = new ArrayBuffer(6);
   var arr = new Uint8Array(buf);
   arr[0] = cc;
-  arr[1] = 0;
+  for (var i = 1; i < 6; i++)
+    arr[i] = 0;
   return buf;
 };
 
@@ -249,7 +255,7 @@ var DataConverter =
       isProcessing = true;
       
       var l = Math.floor(incompleteBytes.length / this.byteCount);
-      for (var i = 0; i < l; i++)
+      for (var i = 0; i < l && l <= 50; i++)
         this.plotData(i);
       
       hLineChart.update();
@@ -299,6 +305,15 @@ var DataConverter =
       case 3:
         return (new Float32Array(this.getBluetoothData(bytesStartIndex, 4)))[0];
         break;
+      case 4:
+        return (new Uint8Array(this.getBluetoothData(bytesStartIndex, 1)))[0];
+        break;
+      case 5:
+        return (new Uint16Array(this.getBluetoothData(bytesStartIndex, 2)))[0];
+        break;
+      case 6:
+        return (new Uint32Array(this.getBluetoothData(bytesStartIndex, 4)))[0];
+        break;
     }
   },
   getBluetoothData:
@@ -307,7 +322,8 @@ var DataConverter =
     return (new Int8Array(incompleteBytes.splice(index, size))).buffer;
   },
   typeIndex: [],
-  byteCount: 0
+  byteCount: 0,
+  nameList: []
 };
 
 var onDataUpdate =
@@ -320,18 +336,8 @@ function()
 var bluetoothOnReceive =
 function(info)
 {
-  if (isPlotting)
-  {
-    if (!allowReceive)
-    {
-      if ((new Int8Array(info.data))[0] != '/'.charCodeAt())
-        return ;
-      allowReceive = true;
-      return ;
-    }
-    for (var byte of (new Int8Array(info.data)))
-      incompleteBytes.push(byte);
-  }
+  for (var byte of (new Int8Array(info.data)))
+    incompleteBytes.push(byte);
 };
 
 var bluetoothOnReceiveError =
@@ -339,6 +345,81 @@ function(info)
 {
   console.log(prefixBg + "OnReceiveError" + info.errorMessage);
   socketRetry("Disconnected...");
+};
+
+var normalBufferHandler = 
+function(info)
+{
+  for (var byte of (new Int8Array(info.data)))
+    incompleteBytes.push(byte);
+};
+
+var updateWatchedVars = 
+function()
+{
+  var varString = "";
+  
+  for (var i = 0; i < DataConverter.typeIndex.length; i++)
+    varString += getTypeStringFromIndex(DataConverter.typeIndex[i]) + ",\n";
+  varString = varString.substr(0, varString.length - 2);
+  hChannelOption.innerHTML = varString;
+  chrome.storage.sync.set({'shownTypes': varString, 'hasData': true});
+};
+
+var watchedVarHandler = 
+function()
+{
+  if (String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.slice(-4))) == ",end")
+  {
+    clearInterval(hGetVarsInfoTimer);
+    
+    DataConverter.nameList = [];
+    DataConverter.typeIndex = [];
+    DataConverter.byteCount = 0;
+    
+    if (incompleteBytes.splice(0, 1) == ','.charCodeAt())
+    {
+      var n = incompleteBytes.splice(0, 1)[0];
+      for (var i = 0; i < n && String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.slice(0, 3))) != "end"; i++)
+      {
+        addTypeFromString(String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.splice(0, incompleteBytes.indexOf(0)))));
+        incompleteBytes.shift();
+        DataConverter.nameList.push(String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.splice(0, incompleteBytes.indexOf(0)))));
+        incompleteBytes.shift();
+        incompleteBytes.splice(0, 1);
+      }
+    }
+    incompleteBytes = [];
+    updateWatchedVars();
+      
+    chrome.bluetoothSocket.send(curSocketId, toArrayBuffer('s'), checkConnection);
+    hTimer = setInterval(onDataUpdate, 10);
+  }
+};
+
+var sharedVarHandler = 
+function()
+{
+  DataConverter.nameList = [];
+  DataConverter.typeIndex = [];
+  DataConverter.byteCount = 0;
+  
+  while (String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.slice(-4))) != ".end");
+  
+  if (incompleteBytes.splice(0, 1) == '.'.charCodeAt())
+  {
+    var n = incompleteBytes.splice(0, 1)[0];
+    for (var i = 0; i < n && String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.slice(0, 3))) != "end"; i++)
+    {
+      addTypeFromString(String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.splice(0, incompleteBytes.indexOf(0)))));
+      incompleteBytes.shift();
+      DataConverter.nameList.push(String.fromCharCode.apply(null, new Uint8Array(incompleteBytes.splice(0, incompleteBytes.indexOf(0)))));
+      incompleteBytes.shift();
+      incompleteBytes.splice(0, 1);
+    }
+  }
+  incompleteBytes = [];
+  updateWatchedVars();
 };
 
 var bluetoothSocketOnConnected =
@@ -390,8 +471,12 @@ function()
     allowReceive = false;
     incompleteBytes = [];
     
-    chrome.bluetoothSocket.send(curSocketId, toArrayBuffer('s'), checkConnection);
-    hTimer = setInterval(onDataUpdate, 10);
+    chrome.bluetoothSocket.send(curSocketId, toArrayBuffer('w'), checkConnection);
+    hGetVarsInfoTimer = setInterval(watchedVarHandler, 100);
+    
+    // TODO: add this function
+    // chrome.bluetoothSocket.send(curSocketId, toArrayBuffer('h'), checkConnection);
+    // sharedVarHandler();
   }
   else if (hButtonPlot.value == "Stop")
   {
@@ -407,6 +492,9 @@ function()
     isPlotting = false;
     allowReceive = false;
     incompleteBytes = [];
+    DataConverter.nameList = [];
+    DataConverter.typeIndex = [];
+    DataConverter.byteCount = 0;
   }
 };
 
@@ -538,6 +626,67 @@ function(event)
     event.target.value = event.target.defaultValue;
 };
 
+var getTypeStringFromIndex = 
+function(index)
+{
+  switch (index)
+  {
+    case 0:
+      return "int8_t";
+    case 1:
+      return "int16_t";
+    case 2:
+      return "int32_t";
+    case 3:
+      return "float";
+    case 4:
+      return "uint8_t";
+    case 5:
+      return "uint16_t";
+    case 6:
+      return "uint32_t";
+  }
+};
+
+var addTypeFromString = 
+function(typeString)
+{
+  switch (typeString)
+  {
+    case "int8_t":
+      DataConverter.typeIndex.push(0);
+      DataConverter.byteCount += 1;
+      break;
+    case "int16_t":
+      DataConverter.typeIndex.push(1);
+      DataConverter.byteCount += 2;
+      break;
+    case "int32_t":
+      DataConverter.typeIndex.push(2);
+      DataConverter.byteCount += 4;
+      break;
+    case "float":
+      DataConverter.typeIndex.push(3);
+      DataConverter.byteCount += 4;
+      break;
+    case "uint8_t":
+      DataConverter.typeIndex.push(4);
+      DataConverter.byteCount += 1;
+      break;
+    case "uint16_t":
+      DataConverter.typeIndex.push(5);
+      DataConverter.byteCount += 2;
+      break;
+    case "uint32_t":
+      DataConverter.typeIndex.push(6);
+      DataConverter.byteCount += 4;
+      break;
+    default:
+      event.target.value = channelString;
+      return ;
+  }
+};
+
 var onChannelOptionChanged = 
 function(event)
 {
@@ -547,30 +696,7 @@ function(event)
   DataConverter.byteCount = 0;
   var typeList = (event.target.value.replace(/\s/g, "")).toLowerCase().split(",");
   for (var type of typeList)
-  {
-    switch (type)
-    {
-      case "int8":
-        DataConverter.typeIndex.push(0);
-        DataConverter.byteCount += 1;
-        break;
-      case "int16_t":
-        DataConverter.typeIndex.push(1);
-        DataConverter.byteCount += 2;
-        break;
-      case "int32_t":
-        DataConverter.typeIndex.push(2);
-        DataConverter.byteCount += 4;
-        break;
-      case "float":
-        DataConverter.typeIndex.push(3);
-        DataConverter.byteCount += 4;
-        break;
-      default:
-        event.target.value = channelString;
-        return ;
-    }
-  }
+    addTypeFromString(type);
   channelString = event.target.value;
   chrome.storage.sync.set({'shownTypes': channelString, 'hasData': true});
 };
