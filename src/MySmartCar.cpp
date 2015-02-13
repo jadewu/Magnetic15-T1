@@ -53,13 +53,15 @@ Adc::Config getAdcConfig()
 {
 	Adc::Config config;
 	config.adc = libbase::k60::Adc::Name::kAdc0Ad5B;
-	config.avg_pass = libbase::k60::Adc::Config::AveragePass::k4;
+	config.avg_pass = libbase::k60::Adc::Config::AveragePass::k8;
+	config.resolution = Adc::Config::Resolution::k16Bit;
 	return config;
 }
 St7735r::Config getLcdConfig()
 {
 	St7735r::Config config;
 	config.is_revert = false;
+	config.is_bgr = false;
 	return config;
 }
 
@@ -158,15 +160,19 @@ void MySmartCar::ExecuteCommand(const Byte *bytes, const size_t size)
 	case CMD_SETSPEED:
 		m_msc_instance->car_speed = bytes[1] * 10;
 		break;
-	case 's':
-		m_msc_instance->myVarMng.sendWatchData();
-		m_msc_instance->myVarMng.Init();
-//		m_msc_instance->btStarted = true;
-//		m_msc_instance->myUart.SendBuffer((Byte *)"/", 1);
-		break;
-	case 'e':
-		m_msc_instance->myVarMng.UnInit();
+//	case 's':
+//		m_msc_instance->myVarMng.sendWatchData();
+//		m_msc_instance->myVarMng.Init();
 //		m_msc_instance->btStarted = false;
+////		m_msc_instance->btStarted = true;
+////		m_msc_instance->myUart.SendBuffer((Byte *)"/", 1);
+//		break;
+//	case 'e':
+//		m_msc_instance->myVarMng.UnInit();
+////		m_msc_instance->btStarted = false;
+//		break;
+	case 'w':
+		m_msc_instance->btStarted = false;
 		break;
 	}
 }

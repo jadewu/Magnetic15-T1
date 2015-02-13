@@ -10,6 +10,7 @@
 #include <MySmartCar.h>
 #include <libutil/remote_var_manager.h>
 #include <libbase/k60/rand_generator.h>
+#include <libsc/k60/lcd_console.h>
 #include <libbase/k60/gpio.h>
 #include <map>
 #include <array>
@@ -43,26 +44,36 @@ int main()
 	System::Init();
 	MySmartCar myCar;
 
-	float f = 0.0f;
-	uint8_t rf = 0;
-	float sf = 0.0f;
+	LcdConsole::Config lcdConfig;
+	lcdConfig.lcd = &myCar.myLcd;
+	LcdConsole myConsole(lcdConfig);
 
-	myCar.myVarMng.addWatchedVar(&f, "float", sizeof(float), "TestValue1");
-	myCar.myVarMng.addWatchedVar(&rf, "uint8_t", sizeof(uint8_t), "TestValue2");
-	myCar.myVarMng.addWatchedVar(&sf, "float", sizeof(float), "TestValue3");
+//	uint16_t adcReading = 0;
+//	float adcReadingF = 0.0f;
+
+//	myCar.myVarMng.addWatchedVar(&adcReading, "uint16_t", 2, "1");
+//	myCar.myVarMng.addWatchedVar(&adcReadingF, "float", 4, "2");
 //	myCar.myVarMng.Init(&myCar.ExecuteCommand);
-	myCar.myVarMng.Init();
+//	myCar.myVarMng.Init();
+
+//	System::DelayMs(3000);
+//	myCar.myLcd.Clear(0);
+
+	uint16_t i = 0;
+	uint16_t n = 0;
+	char *buf = new char[125] { 0 };
 
 	while (true)
 	{
-		for (float i = 0.0f; i < 100.0f; i += 0.5f)
-		{
-			f = i;
-			rf = 100 - f;
-			sf = sin(f) + 50.0f;
-			myCar.myVarMng.sendWatchData();
-			System::DelayMs(20);
-		}
+		myConsole.Clear(true);
+		n = sprintf(buf, "pTimer \nCount: %d", i++);
+		myConsole.WriteBuffer(buf, n);
+
+//		adcReading = myCar.myMagSensor.GetResult() & ~3;
+//		adcReadingF = myCar.myMagSensor.GetResultF();
+//		myCar.myVarMng.sendWatchData();
+
+		System::DelayMs(1000);
 	}
 
 	while (true);

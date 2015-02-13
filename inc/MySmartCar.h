@@ -64,6 +64,7 @@ public:
 
 	VarManager			myVarMng;
 	Adc					myMagSensor;
+	St7735r				myLcd;
 
 private:
 
@@ -79,7 +80,6 @@ private:
 	Led					myLed1;
 	Led					myLed2;
 	Led					myLed3;
-	St7735r				myLcd;
 
 	bool				isClockWise;
 	uint16_t			car_speed;

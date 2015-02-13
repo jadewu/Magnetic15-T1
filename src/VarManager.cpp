@@ -15,19 +15,30 @@ using namespace libsc::k60;
 
 VarManager *m_pd_instance;
 
-FtdiFt232r::Config VarManager::getUartConfig(const uint8_t id)
+JyMcuBt106::Config VarManager::get106UartConfig(const uint8_t id)
+{
+	JyMcuBt106::Config config;
+	config.baud_rate = libbase::k60::Uart::Config::BaudRate::k115200;
+	config.rx_irq_threshold = rx_threshold;
+	config.is_rx_irq_threshold_percentage = false;
+	config.tx_buf_size = 50;
+	return config;
+}
+
+FtdiFt232r::Config VarManager::get232UartConfig(const uint8_t id)
 {
 	FtdiFt232r::Config config;
 	config.id = id;
 	config.baud_rate = libbase::k60::Uart::Config::BaudRate::k115200;
 	config.rx_irq_threshold = rx_threshold;
 	config.is_rx_irq_threshold_percentage = false;
+	config.tx_buf_size = 50;
 	return config;
 }
 
 VarManager::VarManager(void)
 :
-	m_uart(getUartConfig(0)),
+	m_uart(get106UartConfig(0)),
 	isStarted(false)
 {
 	m_pd_instance = this;
@@ -120,7 +131,7 @@ void VarManager::sendSharedVarInfo(void)
 	m_uart.SendBuffer((Byte *)"end", 3);
 }
 
-void VarManager::Init(const FtdiFt232r::OnReceiveListener &oriListener)
+void VarManager::Init(const JyMcuBt106::OnReceiveListener &oriListener)
 {
 	if (!isStarted)
 	{
