@@ -3,4 +3,6 @@ HKUST SmartCar 2015 - Magnetic Team 1
 
 By PeterLau
 
-Minimum delay between "sendWatchData" is 10ms.
+<h2>pGrapher</h2>
+
+  Minimum delay between "sendWatchData" is 10ms.
