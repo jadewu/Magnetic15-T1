@@ -5,7 +5,6 @@
  *      Author: Peter
  */
 
-#include <cstring>
 #include <libsc/k60/system.h>
 
 #ifndef INC_PID_H_

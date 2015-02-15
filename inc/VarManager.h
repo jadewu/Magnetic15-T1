@@ -16,9 +16,6 @@
 #include <libbase/k60/sys_tick.h>
 #include <libsc/k60/jy_mcu_bt_106.h>
 
-#include <cstdlib>
-#include <functional>
-
 using namespace libsc::k60;
 using namespace libbase::k60;
 

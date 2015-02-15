@@ -6,6 +6,7 @@
  */
 
 #include "PIDhandler.h"
+#include <cstring>
 
 using namespace libsc::k60;
 

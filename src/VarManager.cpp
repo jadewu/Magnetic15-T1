@@ -7,6 +7,9 @@
 
 #include "VarManager.h"
 
+#include <cstdlib>
+#include <functional>
+
 // TODO: enable following preprocessor command
 //#ifdef LIBSC_USE_UART
 
