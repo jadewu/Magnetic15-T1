@@ -41,11 +41,9 @@ Mma8451q::Config getMma8451qConfig(const uint8_t id)
 {
 	Mma8451q::Config config;
 	config.id = id;
-	config.sens = Mma8451q::Config::Sensitivity::Mid;
-	config.output_data_rate = Mma8451q::Config::ODR::k200Hz;
-	config.scl_pin = libbase::k60::Pin::Name::kPtb0;
-	config.sda_pin = libbase::k60::Pin::Name::kPtb1;
-	config.power_mode = Mma8451q::Config::PowerMode::LowNoiseLowPower;
+	config.sensitivity = Mma8451q::Config::Sensitivity::kMid;
+	config.output_data_rate = Mma8451q::Config::OutputDataRate::k200Hz;
+	config.power_mode = Mma8451q::Config::PowerMode::kLowNoiseLowPower;
 	return config;
 }
 

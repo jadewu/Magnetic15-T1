@@ -8,9 +8,6 @@
 #ifndef SRC_MYSMARTCAR_H_
 #define SRC_MYSMARTCAR_H_
 
-#include <cstring>
-#include <array>
-
 #include <libsc/k60/system.h>
 #include <libsc/k60/led.h>
 #include <libsc/k60/alternate_motor.h>
