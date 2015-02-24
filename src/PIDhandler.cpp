@@ -31,8 +31,8 @@ float PIDhandler::updatePID(float val, uint16_t dt)
 {
 	float error = reference - val;
 	float de = (error - lastError) / dt;
-	eSum += error;
+	eSum += error*dt;
 	lastError = error;
 
-	return (float)(Kp * error + Ki * dt + Kd * de);
+	return (float)(Kp * error + Ki * de + Kd * esum);
 }
