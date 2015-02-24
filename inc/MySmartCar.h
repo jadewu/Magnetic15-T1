@@ -17,11 +17,12 @@
 #include <libsc/k60/ftdi_ft232r.h>
 #include <libsc/k60/st7735r.h>
 #include <libsc/k60/mma8451q.h>
+#include <libsc/k60/futaba_s3010.h>
 #include "VarManager.h"
 
 using namespace libsc::k60;
 
-#define	inRange(i,v,a) ((v > a)? a : ((v < i)? i : v))
+#define	inRange(n, v, x) ((v > x)? x : ((v < n)? n : v))
 
 #define MIN_MOTOR_POWER	0
 #define MAX_MOTOR_POWER	1000
@@ -62,6 +63,7 @@ public:
 	VarManager			myVarMng;
 	Adc					myMagSensor;
 	St7735r				myLcd;
+	FutabaS3010			myServo;
 
 private:
 
@@ -70,7 +72,6 @@ private:
 #else
 	AlternateMotor		myMotor;
 #endif
-	TowerProMg995		myServo;
 //	FtdiFt232r			myUart;
 	Mma8451q			myAccel;
 	Led					myLed0;

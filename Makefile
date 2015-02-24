@@ -132,7 +132,7 @@ CCFLAGS+=-std=gnu99
 
 CXXFLAGS+=-std=gnu++11
 CXXFLAGS+=-pedantic
-CXXFLAGS+=-fno-exceptions -fno-rtti
+CXXFLAGS+=-fno-exceptions# -fno-rtti
 
 ARFLAGS+=-r
 

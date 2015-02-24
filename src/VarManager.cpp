@@ -9,12 +9,14 @@
 
 #include <cstdlib>
 #include <functional>
+#include <utility>
 
 // TODO: enable following preprocessor command
 //#ifdef LIBSC_USE_UART
 
 using namespace libbase::k60;
 using namespace libsc::k60;
+using namespace std;
 
 VarManager *m_pd_instance;
 
@@ -54,20 +56,10 @@ VarManager::~VarManager()
 	watchedObjMng.clear();
 }
 
-VarManager::ObjMng::ObjMng()
-:
-	obj(nullptr),
-	typeName(""),
-	varName("")
-{}
-
-VarManager::ObjMng::~ObjMng()
-{}
-
 void VarManager::listener(const Byte *bytes, const size_t size)
 {
-	if (size != m_pd_instance->rx_threshold)
-		return ;
+//	if (size != m_pd_instance->rx_threshold)
+//		return ;
 
 	switch (bytes[0])
 	{
@@ -100,7 +92,7 @@ void VarManager::sendWatchData(void)
 {
 	if (isStarted)
 		for (Byte i = 0; i < watchedObjMng.size(); i++)
-			m_uart.SendBuffer((Byte *)watchedObjMng.at(i).obj, watchedObjMng.at(i).len);
+			m_uart.SendBuffer((Byte *)((ObjMng)watchedObjMng.at(i)).obj, ((ObjMng)watchedObjMng.at(i)).len);
 }
 
 void VarManager::sendWatchedVarInfo(void)
@@ -134,15 +126,6 @@ void VarManager::sendSharedVarInfo(void)
 	m_uart.SendBuffer((Byte *)"end", 3);
 }
 
-void VarManager::Init(const JyMcuBt106::OnReceiveListener &oriListener)
-{
-	if (!isStarted)
-	{
-		m_origin_listener = oriListener;
-		m_uart.EnableRx(&listener);
-	}
-}
-
 void VarManager::Init(void)
 {
 	if (!isStarted)
@@ -153,36 +136,19 @@ void VarManager::Init(void)
 	}
 }
 
+void VarManager::Init(const JyMcuBt106::OnReceiveListener &oriListener)
+{
+	if (!isStarted)
+	{
+		m_origin_listener = oriListener;
+		m_uart.EnableRx(&listener);
+	}
+}
+
 void VarManager::UnInit(void)
 {
 	m_origin_listener = nullptr;
 	m_uart.DisableRx();
-}
-
-void VarManager::addSharedVar(void *pObj, const char *pTypeName, Byte size, const char *pVarName)
-{
-	if (!isStarted)
-	{
-		ObjMng newObjMng;
-		newObjMng.obj = pObj;
-		newObjMng.len = size;
-		newObjMng.typeName = std::string(pTypeName);
-		newObjMng.varName = std::string(pVarName);
-		sharedObjMng.push_back(newObjMng);
-	}
-}
-
-void VarManager::addWatchedVar(void *pObj, const char *pTypeName, Byte size, const char *pVarName)
-{
-	if (!isStarted)
-	{
-		ObjMng newObjMng;
-		newObjMng.obj = pObj;
-		newObjMng.len = size;
-		newObjMng.typeName = std::string(pTypeName);
-		newObjMng.varName = std::string(pVarName);
-		watchedObjMng.push_back(newObjMng);
-	}
 }
 
 //#endif /* LIBSC_USE_UART */
