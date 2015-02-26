@@ -1,8 +1,11 @@
 /*
  * VarManager.cpp
  *
- *  Created on: Feb 8, 2015
- *      Author: Peter
+ * Author: PeterLau
+ * Version: 2.7.5
+ *
+ * Copyright (c) 2014-2015 HKUST SmartCar Team
+ * Refer to LICENSE for details
  */
 
 #include "VarManager.h"
@@ -19,6 +22,8 @@ using namespace libsc::k60;
 using namespace std;
 
 VarManager *m_pd_instance;
+
+VarManager::TypeId *VarManager::TypeId::m_instance = nullptr;
 
 JyMcuBt106::Config VarManager::get106UartConfig(const uint8_t id)
 {
@@ -48,6 +53,7 @@ VarManager::VarManager(void)
 {
 	m_pd_instance = this;
 	System::Init();
+	TypeId::Init();
 }
 
 VarManager::~VarManager()

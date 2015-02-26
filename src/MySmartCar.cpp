@@ -27,7 +27,6 @@ DirMotor::Config getDirMotorConfig(const uint8_t id)
 	return config;
 }
 
-
 UartDevice::Config getUartConfig(const uint8_t id)
 {
 	UartDevice::Config config;
@@ -47,7 +46,7 @@ Mma8451q::Config getMma8451qConfig(const uint8_t id)
 	return config;
 }
 
-Adc::Config getAdcConfig()
+Adc::Config getAdc0Config()
 {
 	Adc::Config config;
 	config.adc = libbase::k60::Adc::Name::kAdc0Ad5B;
@@ -55,6 +54,23 @@ Adc::Config getAdcConfig()
 	config.resolution = Adc::Config::Resolution::k16Bit;
 	return config;
 }
+
+Adc::Config getAdc1Config()
+{
+	Adc::Config config;
+	config.adc = libbase::k60::Adc::Name::kAdc1Ad5B;
+	config.avg_pass = libbase::k60::Adc::Config::AveragePass::k8;
+	config.resolution = Adc::Config::Resolution::k16Bit;
+	return config;
+}
+
+TrsD05::Config getServoConfig(const uint8_t id)
+{
+	TrsD05::Config config;
+	config.id = id;
+	return config;
+}
+
 St7735r::Config getLcdConfig()
 {
 	St7735r::Config config;
@@ -63,12 +79,23 @@ St7735r::Config getLcdConfig()
 	return config;
 }
 
+//AbEncoder::Config getEncoderConfig(const uint8_t id)
+//{
+//	AbEncoder::Config config;
+//	config.id = id;
+//	return config;
+//}
+
+void MySmartCar::ledInit(void)
+{
+	for (Byte i = 0; i < 4; i++)
+		myLeds.push_back(Led({i}));
+}
+
 void MySmartCar::reset(void)
 {
-	myLed0.SetEnable(false);
-	myLed1.SetEnable(false);
-	myLed2.SetEnable(false);
-	myLed3.SetEnable(false);
+	for (Byte i = 0; i < myLeds.size(); i++)
+		myLeds.data()[i].SetEnable(false);
 	myMotor.SetClockwise(true);
 	myServo.SetDegree(900);
 	myMotor.SetPower(0);
@@ -86,33 +113,25 @@ void MySmartCar::setSpeed(const int16_t speed)
 
 void MySmartCar::turnLeft(const uint16_t degree_x10)
 {
-	const uint16_t new_degree_x10 = inRange(MIN_SERVO_DEGREE, degree_x10, MAX_SERVO_DEGREE);
-	myServo.SetDegree(900 + new_degree_x10);
+	const uint16_t new_degree_x10 = inRange(MIN_SERVO_TURNING_DEGREE, degree_x10, MAX_SERVO_TURNING_DEGREE);
+	myServo.SetDegree(MID_SERVO_DEGREE + new_degree_x10);
 }
 
 void MySmartCar::turnRight(const uint16_t degree_x10)
 {
-	const uint16_t new_degree_x10 = inRange(MIN_SERVO_DEGREE, degree_x10, MAX_SERVO_DEGREE);
-	myServo.SetDegree(900 - new_degree_x10);
+	const uint16_t new_degree_x10 = inRange(MIN_SERVO_TURNING_DEGREE, degree_x10, MAX_SERVO_TURNING_DEGREE);
+	myServo.SetDegree(MID_SERVO_DEGREE - new_degree_x10);
+}
+
+void MySmartCar::turn(const int16_t degree_x10)
+{
+	const int16_t new_degree_x10 = inRange(-MAX_SERVO_TURNING_DEGREE, outRange(degree_x10, 100), MAX_SERVO_TURNING_DEGREE);
+	myServo.SetDegree(MID_SERVO_DEGREE + new_degree_x10);
 }
 
 void MySmartCar::doBlink(Byte id)
 {
-	switch (id)
-	{
-	case 0:
-		myLed0.Switch();
-		break;
-	case 1:
-		myLed1.Switch();
-		break;
-	case 2:
-		myLed2.Switch();
-		break;
-	case 3:
-		myLed3.Switch();
-		break;
-	}
+	myLeds.data()[id].Switch();
 }
 
 void MySmartCar::ExecuteCommand(const Byte *bytes, const size_t size)
@@ -184,25 +203,22 @@ void MySmartCar::ExecuteCommand(const Byte *bytes, const size_t size)
 MySmartCar::MySmartCar(void)
 :
 //	myUart(getUartConfig(0)),
-	myLed0({0}),
-	myLed1({1}),
-	myLed2({2}),
-	myLed3({3}),
-#ifdef LIBSC_MOTOR0_DIR
 	myMotor(getDirMotorConfig(0)),
-#else
-	myMotor(getAlterMotorConfig(0)),
-#endif
+//	myMotor(getAlterMotorConfig(0)),
 	myVarMng(),
-	myServo({0}),
 	myLcd(getLcdConfig()),
-	myMagSensor(getAdcConfig()),
+	myMagSensor0(getAdc0Config()),
+	myMagSensor1(getAdc1Config()),
 	myAccel(getMma8451qConfig(0)),
 	isClockWise(true),
 	car_speed(250),
+	myServo(getServoConfig(0)),
 	turning_angle(450)
+//	myEncoder(getEncoderConfig(0))
 {
 	m_msc_instance = this;
+	System::Init();
+	ledInit();
 	reset();
 //	myUart.EnableRx(&ExecuteCommand);
 }

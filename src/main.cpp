@@ -14,12 +14,15 @@
 #include <libutil/kalman_filter.h>
 #include <libbase/k60/gpio.h>
 
+#include "PIDhandler.h"
+
 #include <map>
 #include <array>
 #include <cstring>
 #include <cstdio>
 #include <queue>
 #include <cstdlib>
+#include <cmath>
 
 namespace libbase
 {
@@ -42,12 +45,25 @@ using namespace libbase::k60;
 using namespace libutil;
 using namespace std;
 
-float shiftValue = 0.65f;
-float lpQ = 0.008f + shiftValue;
-float lpR = 1.120019f + shiftValue;
-float realReading = 0.0f;
 
 MySmartCar myCar;
+
+#define timeInterval 	10
+#define standardVoltage	0.8f
+#define midDegree		900
+
+float scaleDiff = 1.05;
+float shiftValue = 0.65f;
+
+float baseFilterQ = 0.001f;
+float baseFilterR = 1.120019f;
+
+float lpQ = 0.001f + shiftValue;
+float lpR = 1.120019f + shiftValue;
+
+KalmanFilter filterL(baseFilterQ, baseFilterR, 0.5f, 0.5f);
+KalmanFilter filterR(baseFilterQ, baseFilterR, 0.5f, 0.5f);
+KalmanFilter filterAngle(lpQ - shiftValue, lpR - shiftValue, 0.5f, 0.5f);
 
 void kfTestingFunction(const Byte *bytes, const size_t size)
 {
@@ -56,21 +72,40 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 	case '4':
 		if (lpQ + 0.001f <= 1.0f + shiftValue)
 			lpQ += 0.001f;
+		filterAngle.SetQ(lpQ - shiftValue);
 		break;
 	case '1':
 		if (lpQ - 0.001f >= 0.0f + shiftValue)
 			lpQ -= 0.001f;
+		filterAngle.SetQ(lpQ - shiftValue);
 		break;
 	case '5':
 		if (lpR + 0.001f <= 1.0f + shiftValue)
 			lpR += 0.001f;
+		filterAngle.SetR(lpR - shiftValue);
 		break;
 	case '2':
 		if (lpR - 0.001f >= 0.0f + shiftValue)
 			lpR -= 0.001f;
+		filterAngle.SetR(lpR - shiftValue);
 		break;
 	case '6':
 		myCar.doBlink(0);
+		break;
+
+	case 'i':
+		myCar.setSpeed(180);
+		break;
+	case 'k':
+		myCar.setSpeed(0);
+		break;
+
+	case 'o':
+		scaleDiff += 0.005f;
+		break;
+	case 'l':
+		if (scaleDiff >= 0.05f)
+		scaleDiff -= 0.005f;
 		break;
 	}
 }
@@ -79,66 +114,155 @@ void changeAngle(const Byte *bytes, const size_t size)
 {
 	switch (bytes[0])
 	{
-	case 'n':
-		if (myCar.myServo.GetDegree() >= 100)
-			myCar.myServo.SetDegree(myCar.myServo.GetDegree() - 100);
-		break;
-	case 'm':
-		myCar.myServo.SetDegree(myCar.myServo.GetDegree() + 100);
-		break;
 	}
 }
 
 int main()
 {
-	System::Init();
-
 //	LcdConsole::Config lcdConfig;
 //	lcdConfig.lcd = &myCar.myLcd;
 //	LcdConsole myConsole(lcdConfig);
+	Timer::TimerInt lastTime = System::Time();
 
-//	float adcReading = 0;
-//	KalmanFilter filter(lpQ - shiftValue, lpR - shiftValue, 0.5f, 0.5f);
-//
-//	myCar.myVarMng.addWatchedVar(&realReading, "float", sizeof(float), "0");
-//	myCar.myVarMng.addWatchedVar(&lpQ, "float", sizeof(float), "2");
-//	myCar.myVarMng.addWatchedVar(&adcReading, "float", sizeof(float), "1");
-//	myCar.myVarMng.addWatchedVar(&lpR, "float", sizeof(float), "3");
-	float f = 0.0f;
-	uint8_t i = 0;
+	float adcReadingL = 0;
+	float adcReadingR = 0;
+	float adcRealReadingL = 0;
+	float adcRealReadingR = 0;
+	float servoAngle = 0;
 
-	myCar.myVarMng.addWatchedVar(&f, "1");
-	myCar.myVarMng.addWatchedVar(&i, "3");
+	PIDhandler turningPID(0.0f, 0.7f, 0.0f, 0.0f);
 
-	myCar.myVarMng.Init(&changeAngle);
+	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
+	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
 
-//	System::DelayMs(3000);
-//	myCar.myLcd.Clear(0);
-//	uint16_t n = 0;
-//	char *buf = new char[125] { 0 };
+	myCar.myVarMng.addWatchedVar(&servoAngle, "2");
 
+	myCar.myVarMng.addWatchedVar(&lpQ, "3");
+	myCar.myVarMng.addWatchedVar(&scaleDiff, "3");
+//	myCar.myVarMng.addWatchedVar(&lpQ, "2");
+//	myCar.myVarMng.addWatchedVar(&lpR, "3");
+
+	myCar.myVarMng.Init(&kfTestingFunction);
+	myCar.turn(0);
+	myCar.setSpeed(500);
+//	myCar.setSpeed(200);
 
 	while (true)
 	{
-//		myConsole.Clear(true);
-//		n = sprintf(buf, "pTimer \nCount: %d", i++);
-//		myConsole.WriteBuffer(buf, n);
-
-//		filter.SetQ(lpQ - shiftValue);
-//		filter.SetR(lpR - shiftValue);
-//		realReading = myCar.myMagSensor.GetResultF();
-//		adcReading = filter.Filter(realReading);
-		for (f = 0.0f; f < 100.0f; f += 0.5f)
+		if (System::Time() >= lastTime + timeInterval)
 		{
-			System::DelayMs(20);
-			myCar.doBlink(i++ % 4);
+			adcRealReadingL = myCar.myMagSensor0.GetResultF();
+			adcReadingL = filterL.Filter(adcRealReadingL);
+			adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
+			adcReadingR = filterR.Filter(adcRealReadingR);
+			servoAngle = filterAngle.Filter((float)(adcReadingL - adcReadingR));
+
+			myCar.turn((int16_t)(servoAngle * 10000));
+//			myCar.turn(0);
 			myCar.myVarMng.sendWatchData();
+			myCar.doBlink(0);
+			lastTime = System::Time();
 		}
-//		myCar.myVarMng.sendWatchData();
-//		System::DelayMs(20);
 	}
 
 	while (true);
 
 	return 0;
 }
+
+/*********************************************************************/
+
+/*
+float curKp = 0.02f, curKi = 0.0f, curKd = 0.0f;
+
+float step = 0.005f;
+
+bool isStart = false;
+bool isFirstTime = true;
+
+PIDhandler SpeedPID(600, curKp, curKi, curKd);
+
+void pidTestingFunction(const Byte *bytes, const size_t size)
+{
+	switch (bytes[0])
+	{
+	case '4':
+		curKp += step;
+		SpeedPID.setKp(curKp);
+		break;
+	case '1':
+		if (curKp - step >= 0.0f)
+			curKp -= step;
+		SpeedPID.setKp(curKp);
+		break;
+	case '5':
+		curKi += step;
+		SpeedPID.setKi(curKi);
+		break;
+	case '2':
+		if (curKi - step >= 0.0f)
+			curKi -= step;
+		SpeedPID.setKi(curKi);
+		break;
+	case '6':
+		curKd += step;
+		SpeedPID.setKd(curKd);
+		break;
+	case '3':
+		if (curKd - step >= 0.0f)
+			curKd -= step;
+		SpeedPID.setKd(curKd);
+		break;
+	case '0':
+		isStart = !isStart;
+		break;
+	}
+}
+
+int main()
+{
+	int32_t encoderReading = 0;
+	uint16_t pidResult = 0.0f;
+
+	myCar.myVarMng.addWatchedVar(&encoderReading, "a");
+	myCar.myVarMng.addWatchedVar(&pidResult, "b");
+
+	myCar.myVarMng.addWatchedVar(&curKp, "c");
+	myCar.myVarMng.addWatchedVar(&curKi, "d");
+	myCar.myVarMng.addWatchedVar(&curKd, "e");
+
+	myCar.myVarMng.Init(&pidTestingFunction);
+
+
+	Timer::TimerInt lastTime = System::Time();
+
+	myCar.setSpeed(250);
+
+	while (true)
+	{
+		while (isStart)
+		{
+			if (isFirstTime)
+			{
+				myCar.setSpeed(250);
+				isFirstTime = false;
+			}
+
+			if (System::Time() >= lastTime + 20)
+			{
+				myCar.myEncoder.Update();
+				encoderReading = myCar.myEncoder.GetCount();
+				pidResult = (uint16_t)SpeedPID.updatePID((float)encoderReading, 20);
+				myCar.setSpeed(pidResult);
+
+				myCar.myVarMng.sendWatchData();
+
+				lastTime = System::Time();
+			}
+		}
+
+		myCar.setSpeed(0);
+		isFirstTime = true;
+	}
+}
+*/

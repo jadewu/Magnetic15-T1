@@ -15,8 +15,10 @@ class PIDhandler
 public:
 
 	explicit PIDhandler(int32_t ref, float kp, float ki, float kd);
-	~PIDhandler();
-	float updatePID(float val, uint16_t dt);
+	float updatePID(float val, uint32_t dt);
+	void setKp(float kp);
+	void setKi(float ki);
+	void setKd(float kd);
 	void reset();
 
 private:

@@ -18,17 +18,24 @@
 #include <libsc/k60/st7735r.h>
 #include <libsc/k60/mma8451q.h>
 #include <libsc/k60/futaba_s3010.h>
+#include <libsc/k60/trs_d05.h>
+#include <libsc/k60/ab_encoder.h>
+
 #include "VarManager.h"
+
+#include <vector>
 
 using namespace libsc::k60;
 
 #define	inRange(n, v, x) ((v > x)? x : ((v < n)? n : v))
+#define outRange(v, r) ((v < -r || v > r)? v : 0)
 
 #define MIN_MOTOR_POWER	0
 #define MAX_MOTOR_POWER	1000
 
-#define MIN_SERVO_DEGREE 0
-#define MAX_SERVO_DEGREE 900
+#define MID_SERVO_DEGREE 			900
+#define MIN_SERVO_TURNING_DEGREE 	0
+#define MAX_SERVO_TURNING_DEGREE	450
 
 #define CMD_FORWARD		0
 #define CMD_BACKWARD	1
@@ -51,8 +58,9 @@ public:
 	void reset(void);
 
 	void setSpeed(const int16_t speed);
-	void turnLeft(const uint16_t degree);
-	void turnRight(const uint16_t degree);
+	void turnLeft(const uint16_t degree_x10);
+	void turnRight(const uint16_t degree_x10);
+	void turn(const int16_t degree_x10);
 	void doBlink(Byte id);
 
 	void plotData(const Byte *data, const size_t len);
@@ -61,27 +69,26 @@ public:
 	bool				btStarted = true;
 
 	VarManager			myVarMng;
-	Adc					myMagSensor;
+	Adc					myMagSensor0;
+	Adc					myMagSensor1;
 	St7735r				myLcd;
-	FutabaS3010			myServo;
+	TrsD05				myServo;
+//	AbEncoder			myEncoder;
 
 private:
 
-#ifdef LIBSC_MOTOR0_DIR
 	DirMotor			myMotor;
-#else
-	AlternateMotor		myMotor;
-#endif
+//	AlternateMotor		myMotor;
 //	FtdiFt232r			myUart;
 	Mma8451q			myAccel;
-	Led					myLed0;
-	Led					myLed1;
-	Led					myLed2;
-	Led					myLed3;
+	std::vector<Led>	myLeds;
 
 	bool				isClockWise;
 	uint16_t			car_speed;
 	uint16_t			turning_angle;
+
+	void ledInit(void);
+	void magSensorInit(void);
 
 };
 

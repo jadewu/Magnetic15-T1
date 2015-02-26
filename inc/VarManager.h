@@ -1,8 +1,11 @@
 /*
  * VarManager.h
  *
- *  Created on: Feb 8, 2015
- *      Author: Peter
+ * Author: PeterLau
+ * Version: 2.7.5
+ *
+ * Copyright (c) 2014-2015 HKUST SmartCar Team
+ * Refer to LICENSE for details
  */
 
 #ifndef INC_VARMANAGER_H_
@@ -46,6 +49,31 @@ public:
 		std::string					varName;
 	};
 
+	class TypeId
+	{
+	public:
+
+		static TypeId &Init()
+		{
+			if (!m_instance)
+				m_instance = new TypeId;
+		}
+
+		static std::string getTypeId(uint8_t o) { return "unsigned char"; }
+		static std::string getTypeId(int8_t o) { return "signed char"; }
+		static std::string getTypeId(uint16_t o) { return "unsigned short"; }
+		static std::string getTypeId(int16_t o) { return "short"; }
+		static std::string getTypeId(uint32_t o) { return "unsigned int"; }
+		static std::string getTypeId(int32_t o) { return "int"; }
+		static std::string getTypeId(float o) { return "float"; }
+		template<typename T>
+		static std::string getTypeId(T o) { return "wtf?"; }
+
+	private:
+
+		static TypeId *m_instance;
+	};
+
 	explicit VarManager(void);
 	~VarManager(void);
 
@@ -58,8 +86,7 @@ public:
 	{
 		if (!isStarted)
 		{
-			std::string tn = std::string(typeid(ObjType).name());
-			ObjMng newObj(sharedObj, sizeof(sharedObj), tn, s);
+			ObjMng newObj(sharedObj, sizeof(sharedObj), TypeId::getTypeId(*sharedObj), s);
 			sharedObjMng.push_back(newObj);
 		}
 	}
@@ -69,7 +96,7 @@ public:
 	{
 		if (!isStarted)
 		{
-			ObjMng newObj(watchedObj, sizeof(*watchedObj), __cxxabiv1::__cxa_demangle(typeid(ObjType).name(), nullptr, 0, new int(0)), s);
+			ObjMng newObj(watchedObj, sizeof(*watchedObj), TypeId::getTypeId(*watchedObj), s);
 			watchedObjMng.push_back(newObj);
 		}
 	}

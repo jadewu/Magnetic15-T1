@@ -22,17 +22,30 @@ PIDhandler::PIDhandler(int32_t ref, float kp, float ki, float kd)
 	System::Init();
 }
 
+void PIDhandler::setKp(float kp)
+{
+	Kp = kp;
+}
+void PIDhandler::setKi(float ki)
+{
+	Ki = ki;
+}
+void PIDhandler::setKd(float kd)
+{
+	Kd = kd;
+}
+
 void PIDhandler::reset()
 {
 	eSum = 0;
 }
 
-float PIDhandler::updatePID(float val, uint16_t dt)
+float PIDhandler::updatePID(float val, uint32_t dt)
 {
 	float error = reference - val;
-	float de = (error - lastError) / dt;
-	eSum += error;
+	float dE = (error - lastError) / dt;
+	eSum += error * dt;
 	lastError = error;
 
-	return (float)(Kp * error + Ki * dt + Kd * de);
+	return (float)(Kp * error + Ki * eSum + Kd * dE);
 }
