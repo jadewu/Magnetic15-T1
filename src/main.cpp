@@ -48,12 +48,14 @@ using namespace std;
 
 MySmartCar myCar;
 
-#define timeInterval 	10
+#define timeInterval 	2
 #define standardVoltage	0.8f
 #define midDegree		900
 
-float scaleDiff = 1.05;
+float scaleDiff = 1.265;
 float shiftValue = 0.65f;
+
+float adcToAngleRatio = 10000;
 
 float baseFilterQ = 0.001f;
 float baseFilterR = 1.120019f;
@@ -94,10 +96,13 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 		break;
 
 	case 'i':
-		myCar.setSpeed(180);
+		myCar.setSpeed(200);
+//		adcToAngleRatio += 1000;
 		break;
 	case 'k':
 		myCar.setSpeed(0);
+//		if (adcToAngleRatio >= 1000)
+//			adcToAngleRatio -= 1000;
 		break;
 
 	case 'o':
@@ -107,13 +112,9 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 		if (scaleDiff >= 0.05f)
 		scaleDiff -= 0.005f;
 		break;
-	}
-}
 
-void changeAngle(const Byte *bytes, const size_t size)
-{
-	switch (bytes[0])
-	{
+	case 'b':
+		myCar.turn(0);
 	}
 }
 
@@ -130,22 +131,24 @@ int main()
 	float adcRealReadingR = 0;
 	float servoAngle = 0;
 
+	uint8_t i = 0;
+
 	PIDhandler turningPID(0.0f, 0.7f, 0.0f, 0.0f);
 
 	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
 	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
 
-	myCar.myVarMng.addWatchedVar(&servoAngle, "2");
+//	myCar.myVarMng.addWatchedVar(&servoAngle, "2");
+//
+//	myCar.myVarMng.addWatchedVar(&adcToAngleRatio, "2");
 
-	myCar.myVarMng.addWatchedVar(&lpQ, "3");
+//	myCar.myVarMng.addWatchedVar(&lpQ, "3");
 	myCar.myVarMng.addWatchedVar(&scaleDiff, "3");
 //	myCar.myVarMng.addWatchedVar(&lpQ, "2");
 //	myCar.myVarMng.addWatchedVar(&lpR, "3");
 
 	myCar.myVarMng.Init(&kfTestingFunction);
 	myCar.turn(0);
-	myCar.setSpeed(500);
-//	myCar.setSpeed(200);
 
 	while (true)
 	{
@@ -155,11 +158,12 @@ int main()
 			adcReadingL = filterL.Filter(adcRealReadingL);
 			adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
 			adcReadingR = filterR.Filter(adcRealReadingR);
-			servoAngle = filterAngle.Filter((float)(adcReadingL - adcReadingR));
+			servoAngle = filterAngle.Filter((float)(adcReadingR - adcReadingL));
 
-			myCar.turn((int16_t)(servoAngle * 10000));
+			myCar.turn((int16_t)(servoAngle * 5000));
 //			myCar.turn(0);
-			myCar.myVarMng.sendWatchData();
+			if (!(i++ % 5))
+				myCar.myVarMng.sendWatchData();
 			myCar.doBlink(0);
 			lastTime = System::Time();
 		}

@@ -103,7 +103,7 @@ void MySmartCar::reset(void)
 
 void MySmartCar::setSpeed(const int16_t speed)
 {
-	if (speed < 0)
+	if (speed > 0)
 		myMotor.SetClockwise(true);
 	else
 		myMotor.SetClockwise(false);
@@ -125,7 +125,8 @@ void MySmartCar::turnRight(const uint16_t degree_x10)
 
 void MySmartCar::turn(const int16_t degree_x10)
 {
-	const int16_t new_degree_x10 = inRange(-MAX_SERVO_TURNING_DEGREE, outRange(degree_x10, 100), MAX_SERVO_TURNING_DEGREE);
+	const int16_t new_degree_x10 = inRange(-MAX_SERVO_TURNING_DEGREE, outRangeOf(degree_x10, old_degree_x10, 10), MAX_SERVO_TURNING_DEGREE);
+	old_degree_x10 = new_degree_x10;
 	myServo.SetDegree(MID_SERVO_DEGREE + new_degree_x10);
 }
 
@@ -212,6 +213,7 @@ MySmartCar::MySmartCar(void)
 	myAccel(getMma8451qConfig(0)),
 	isClockWise(true),
 	car_speed(250),
+	old_degree_x10(0),
 	myServo(getServoConfig(0)),
 	turning_angle(450)
 //	myEncoder(getEncoderConfig(0))
@@ -222,5 +224,3 @@ MySmartCar::MySmartCar(void)
 	reset();
 //	myUart.EnableRx(&ExecuteCommand);
 }
-
-MySmartCar::~MySmartCar(void) {}

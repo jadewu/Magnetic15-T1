@@ -28,14 +28,14 @@
 using namespace libsc::k60;
 
 #define	inRange(n, v, x) ((v > x)? x : ((v < n)? n : v))
-#define outRange(v, r) ((v < -r || v > r)? v : 0)
+#define outRangeOf(v, ov, r) ((v - ov < -r || v - ov > r)? v : 0)
 
 #define MIN_MOTOR_POWER	0
 #define MAX_MOTOR_POWER	1000
 
 #define MID_SERVO_DEGREE 			900
 #define MIN_SERVO_TURNING_DEGREE 	0
-#define MAX_SERVO_TURNING_DEGREE	450
+#define MAX_SERVO_TURNING_DEGREE	750
 
 #define CMD_FORWARD		0
 #define CMD_BACKWARD	1
@@ -53,7 +53,6 @@ class MySmartCar
 public:
 
 	MySmartCar(void);
-	~MySmartCar(void);
 
 	void reset(void);
 
@@ -86,6 +85,7 @@ private:
 	bool				isClockWise;
 	uint16_t			car_speed;
 	uint16_t			turning_angle;
+	int16_t				old_degree_x10;
 
 	void ledInit(void);
 	void magSensorInit(void);
