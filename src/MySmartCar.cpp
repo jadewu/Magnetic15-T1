@@ -95,7 +95,7 @@ void MySmartCar::ledInit(void)
 void MySmartCar::reset(void)
 {
 	for (Byte i = 0; i < myLeds.size(); i++)
-		myLeds.data()[i].SetEnable(false);
+		myLeds.at(i).SetEnable(false);
 	myMotor.SetClockwise(true);
 	myServo.SetDegree(900);
 	myMotor.SetPower(0);
@@ -132,7 +132,7 @@ void MySmartCar::turn(const int16_t degree_x10)
 
 void MySmartCar::doBlink(Byte id)
 {
-	myLeds.data()[id].Switch();
+	myLeds.at(id).Switch();
 }
 
 void MySmartCar::ExecuteCommand(const Byte *bytes, const size_t size)

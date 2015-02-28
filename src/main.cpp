@@ -99,7 +99,7 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 			lpR -= 0.001f;
 		filterAngle.SetR(lpR - shiftValue);
 		break;
-	case '6':
+	case 'e':
 		myCar.doBlink(0);
 		break;
 
@@ -133,6 +133,7 @@ void FilterProc()
 	adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
 	adcReadingR = filterR.Filter(adcRealReadingR);
 	servoAngle = filterAngle.Filter((float)(adcReadingR - adcReadingL));
+
 }
 
 void applyResult()
@@ -151,7 +152,6 @@ int main()
 //	LcdConsole::Config lcdConfig;
 //	lcdConfig.lcd = &myCar.myLcd;
 //	LcdConsole myConsole(lcdConfig);
-	Timer::TimerInt lastTime = System::Time();
 
 	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
 	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");

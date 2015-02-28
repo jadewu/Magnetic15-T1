@@ -47,5 +47,5 @@ float PIDhandler::updatePID(float val, uint32_t dt)
 	eSum += error * dt;
 	lastError = error;
 
-	return (float)(Kp * error + Ki * eSum + Kd * dE);
+	return (float)(Kp * error + Ki * dE + Kd * eSum);
 }
