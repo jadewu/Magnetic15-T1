@@ -63,9 +63,17 @@ float baseFilterR = 1.120019f;
 float lpQ = 0.001f + shiftValue;
 float lpR = 1.120019f + shiftValue;
 
+float adcReadingL = 0;
+float adcReadingR = 0;
+float adcRealReadingL = 0;
+float adcRealReadingR = 0;
+float servoAngle = 0;
+
 KalmanFilter filterL(baseFilterQ, baseFilterR, 0.5f, 0.5f);
 KalmanFilter filterR(baseFilterQ, baseFilterR, 0.5f, 0.5f);
 KalmanFilter filterAngle(lpQ - shiftValue, lpR - shiftValue, 0.5f, 0.5f);
+
+PIDhandler turningPID(0.0f, 0.7f, 0.0f, 0.0f);
 
 void kfTestingFunction(const Byte *bytes, const size_t size)
 {
@@ -118,22 +126,32 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 	}
 }
 
+void FilterProc()
+{
+	adcRealReadingL = myCar.myMagSensor0.GetResultF();
+	adcReadingL = filterL.Filter(adcRealReadingL);
+	adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
+	adcReadingR = filterR.Filter(adcRealReadingR);
+	servoAngle = filterAngle.Filter((float)(adcReadingR - adcReadingL));
+}
+
+void applyResult()
+{
+	myCar.turn((int16_t)(servoAngle * 5000));
+}
+
+void sendData()
+{
+	myCar.myVarMng.sendWatchData();
+	myCar.doBlink(0);
+}
+
 int main()
 {
 //	LcdConsole::Config lcdConfig;
 //	lcdConfig.lcd = &myCar.myLcd;
 //	LcdConsole myConsole(lcdConfig);
 	Timer::TimerInt lastTime = System::Time();
-
-	float adcReadingL = 0;
-	float adcReadingR = 0;
-	float adcRealReadingL = 0;
-	float adcRealReadingR = 0;
-	float servoAngle = 0;
-
-	uint8_t i = 0;
-
-	PIDhandler turningPID(0.0f, 0.7f, 0.0f, 0.0f);
 
 	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
 	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
@@ -148,28 +166,12 @@ int main()
 //	myCar.myVarMng.addWatchedVar(&lpR, "3");
 
 	myCar.myVarMng.Init(&kfTestingFunction);
-	myCar.turn(0);
 
-	while (true)
-	{
-		if (System::Time() >= lastTime + timeInterval)
-		{
-			adcRealReadingL = myCar.myMagSensor0.GetResultF();
-			adcReadingL = filterL.Filter(adcRealReadingL);
-			adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
-			adcReadingR = filterR.Filter(adcRealReadingR);
-			servoAngle = filterAngle.Filter((float)(adcReadingR - adcReadingL));
+	myCar.myLoop.addFunctionToLoop(&FilterProc, 2, LOOP_EVERYTIME);
+	myCar.myLoop.addFunctionToLoop(&applyResult, LOOP_IMMEDIATELY, LOOP_EVERYTIME);
+	myCar.myLoop.addFunctionToLoop(&sendData, LOOP_IMMEDIATELY, 5);
 
-			myCar.turn((int16_t)(servoAngle * 5000));
-//			myCar.turn(0);
-			if (!(i++ % 5))
-				myCar.myVarMng.sendWatchData();
-			myCar.doBlink(0);
-			lastTime = System::Time();
-		}
-	}
-
-	while (true);
+	myCar.myLoop.start();
 
 	return 0;
 }

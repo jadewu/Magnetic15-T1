@@ -22,6 +22,7 @@
 #include <libsc/k60/ab_encoder.h>
 
 #include "VarManager.h"
+#include "Loop.h"
 
 #include <vector>
 
@@ -66,6 +67,8 @@ public:
 	static void ExecuteCommand(const Byte *bytes, const size_t size);
 
 	bool				btStarted = true;
+
+	Loop				myLoop;
 
 	VarManager			myVarMng;
 	Adc					myMagSensor0;
