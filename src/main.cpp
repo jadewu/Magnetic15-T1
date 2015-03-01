@@ -53,70 +53,120 @@ MySmartCar myCar;
 #define midDegree		900
 
 float scaleDiff = 1.265;
-float shiftValue = 0.65f;
 
 float adcToAngleRatio = 10000;
 
 float baseFilterQ = 0.001f;
-float baseFilterR = 1.120019f;
+float baseFilterR = 1.75f;
 
-float lpQ = 0.001f + shiftValue;
-float lpR = 1.120019f + shiftValue;
+float lpQ = 0.0198f;
+float lpR = 1.0f;
+
+float lpP = 0;
+float lpD = 0;
 
 float adcReadingL = 0;
 float adcReadingR = 0;
 float adcRealReadingL = 0;
 float adcRealReadingR = 0;
 float servoAngle = 0;
+float retServoAngle = 0;
 
 KalmanFilter filterL(baseFilterQ, baseFilterR, 0.5f, 0.5f);
 KalmanFilter filterR(baseFilterQ, baseFilterR, 0.5f, 0.5f);
-KalmanFilter filterAngle(lpQ - shiftValue, lpR - shiftValue, 0.5f, 0.5f);
+KalmanFilter filterAngle(lpQ, lpR, 0.5f, 0.5f);
 
-PIDhandler turningPID(0.0f, 0.7f, 0.0f, 0.0f);
+PIDhandler turningPID(0.0f, 2650.0f, 0.0f, 0.0f);
 
 void kfTestingFunction(const Byte *bytes, const size_t size)
 {
 	switch (bytes[0])
 	{
 	case '4':
-		if (lpQ + 0.001f <= 1.0f + shiftValue)
-			lpQ += 0.001f;
-		filterAngle.SetQ(lpQ - shiftValue);
+		if (lpQ + 0.0001 <= 1.0f)
+			lpQ += 0.0001;
+		filterAngle.SetQ(lpQ);
 		break;
 	case '1':
-		if (lpQ - 0.001f >= 0.0f + shiftValue)
-			lpQ -= 0.001f;
-		filterAngle.SetQ(lpQ - shiftValue);
+		if (lpQ - 0.0001 >= 0.0f)
+			lpQ -= 0.0001;
+		filterAngle.SetQ(lpQ);
 		break;
 	case '5':
-		if (lpR + 0.001f <= 1.0f + shiftValue)
-			lpR += 0.001f;
-		filterAngle.SetR(lpR - shiftValue);
+		if (lpR + 0.001 <= 1.0f)
+			lpR += 0.001;
+		filterAngle.SetR(lpR);
 		break;
 	case '2':
-		if (lpR - 0.001f >= 0.0f + shiftValue)
-			lpR -= 0.001f;
-		filterAngle.SetR(lpR - shiftValue);
+		if (lpR - 0.001 >= 0.0f)
+			lpR -= 0.001;
+		filterAngle.SetR(lpR);
 		break;
+	case '6':
+		if (baseFilterQ + 0.00001f <= 1.0f)
+			baseFilterQ += 0.00001f;
+		filterL.SetQ(baseFilterQ);
+		filterR.SetQ(baseFilterQ);
+		break;
+	case '3':
+		if (baseFilterQ - 0.00001f >= 0.0f)
+			baseFilterQ -= 0.00001f;
+		filterL.SetQ(baseFilterQ);
+		filterR.SetQ(baseFilterQ);
+		break;
+	case '+':
+		if (baseFilterR + 0.05f <= 2.0f)
+			baseFilterR += 0.05f;
+		filterL.SetR(baseFilterR);
+		filterR.SetR(baseFilterR);
+		break;
+	case '-':
+		if (baseFilterR - 0.05f >= 0.0f)
+			baseFilterR -= 0.05f;
+		filterL.SetR(baseFilterR);
+		filterR.SetR(baseFilterR);
+		break;
+
+	case 'p':
+		turningPID.setKp(turningPID.getKp() + 50);
+		break;
+	case 'P':
+		turningPID.setKp(turningPID.getKp() - 50);
+		break;
+	case 'i':
+		turningPID.setKi(turningPID.getKi() + 50);
+		break;
+	case 'I':
+		turningPID.setKi(turningPID.getKi() - 50);
+		break;
+	case 'd':
+		turningPID.setKd(turningPID.getKd() + 0.005);
+		break;
+	case 'D':
+		turningPID.setKd(turningPID.getKd() - 0.005);
+		break;
+
 	case 'e':
 		myCar.doBlink(0);
 		break;
 
-	case 'i':
-		myCar.setSpeed(200);
+	case 'u':
+		myCar.setSpeed(160);
 //		adcToAngleRatio += 1000;
 		break;
-	case 'k':
+	case 'j':
 		myCar.setSpeed(0);
 //		if (adcToAngleRatio >= 1000)
 //			adcToAngleRatio -= 1000;
 		break;
+	case 'm':
+		myCar.setSpeed(-160);
+		break;
 
-	case 'o':
+	case 'h':
 		scaleDiff += 0.005f;
 		break;
-	case 'l':
+	case 'n':
 		if (scaleDiff >= 0.05f)
 		scaleDiff -= 0.005f;
 		break;
@@ -132,17 +182,19 @@ void FilterProc()
 	adcReadingL = filterL.Filter(adcRealReadingL);
 	adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
 	adcReadingR = filterR.Filter(adcRealReadingR);
-	servoAngle = filterAngle.Filter((float)(adcReadingR - adcReadingL));
-
+	retServoAngle = turningPID.updatePID(adcReadingL - adcReadingR, 2);
+	retServoAngle = filterAngle.Filter(retServoAngle);
 }
 
 void applyResult()
 {
-	myCar.turn((int16_t)(servoAngle * 5000));
+	myCar.turn((int16_t)retServoAngle);
 }
 
 void sendData()
 {
+	lpP = turningPID.getKp();
+	lpD = turningPID.getKd();
 	myCar.myVarMng.sendWatchData();
 	myCar.doBlink(0);
 }
@@ -153,23 +205,28 @@ int main()
 //	lcdConfig.lcd = &myCar.myLcd;
 //	LcdConsole myConsole(lcdConfig);
 
-	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
-	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
+//	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
+//	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
 
-//	myCar.myVarMng.addWatchedVar(&servoAngle, "2");
+	myCar.myVarMng.addWatchedVar(&baseFilterQ, "3");
+	myCar.myVarMng.addWatchedVar(&baseFilterR, "3");
+
+	myCar.myVarMng.addWatchedVar(&lpP, "0");
+	myCar.myVarMng.addWatchedVar(&lpD, "0");
 //
-//	myCar.myVarMng.addWatchedVar(&adcToAngleRatio, "2");
+	myCar.myVarMng.addWatchedVar(&retServoAngle, "2");
 
-//	myCar.myVarMng.addWatchedVar(&lpQ, "3");
+
 	myCar.myVarMng.addWatchedVar(&scaleDiff, "3");
-//	myCar.myVarMng.addWatchedVar(&lpQ, "2");
-//	myCar.myVarMng.addWatchedVar(&lpR, "3");
+
+	myCar.myVarMng.addWatchedVar(&lpQ, "2");
+	myCar.myVarMng.addWatchedVar(&lpR, "3");
 
 	myCar.myVarMng.Init(&kfTestingFunction);
 
-	myCar.myLoop.addFunctionToLoop(&FilterProc, 2, LOOP_EVERYTIME);
+	myCar.myLoop.addFunctionToLoop(&FilterProc, 1, LOOP_EVERYTIME);
 	myCar.myLoop.addFunctionToLoop(&applyResult, LOOP_IMMEDIATELY, LOOP_EVERYTIME);
-	myCar.myLoop.addFunctionToLoop(&sendData, LOOP_IMMEDIATELY, 5);
+	myCar.myLoop.addFunctionToLoop(&sendData, LOOP_IMMEDIATELY, 10);
 
 	myCar.myLoop.start();
 

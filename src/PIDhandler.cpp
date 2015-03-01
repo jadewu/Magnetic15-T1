@@ -10,7 +10,7 @@
 
 using namespace libsc::k60;
 
-PIDhandler::PIDhandler(int32_t ref, float kp, float ki, float kd)
+PIDhandler::PIDhandler(float *ref, float kp, float ki, float kd)
 :
 	reference(ref),
 	Kp(kp),
@@ -22,17 +22,44 @@ PIDhandler::PIDhandler(int32_t ref, float kp, float ki, float kd)
 	System::Init();
 }
 
+PIDhandler::PIDhandler(float ref, float kp, float ki, float kd)
+:
+	reference(new float(ref)),
+	Kp(kp),
+	Ki(ki),
+	Kd(kd),
+	eSum(0),
+	lastError(0)
+{
+	System::Init();
+}
+
 void PIDhandler::setKp(float kp)
 {
-	Kp = kp;
+	Kp = MAX(0, kp);
 }
 void PIDhandler::setKi(float ki)
 {
-	Ki = ki;
+	Ki = MAX(0, ki);
 }
 void PIDhandler::setKd(float kd)
 {
-	Kd = kd;
+	Kd = MAX(0, kd);
+}
+
+float PIDhandler::getKp(void)
+{
+	return Kp;
+}
+
+float PIDhandler::getKi(void)
+{
+	return Ki;
+}
+
+float PIDhandler::getKd(void)
+{
+	return Kd;
 }
 
 void PIDhandler::reset()
@@ -42,7 +69,7 @@ void PIDhandler::reset()
 
 float PIDhandler::updatePID(float val, uint32_t dt)
 {
-	float error = reference - val;
+	float error = *reference - val;
 	float dE = (error - lastError) / dt;
 	eSum += error * dt;
 	lastError = error;
