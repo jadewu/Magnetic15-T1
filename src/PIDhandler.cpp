@@ -29,6 +29,9 @@ PIDhandler::PIDhandler(float ref, float kp, float ki, float kd)
 	Ki(ki),
 	Kd(kd),
 	eSum(0),
+	epsilon(10),
+	output(0),
+	v(10)
 	lastError(0)
 {
 	System::Init();
@@ -71,8 +74,17 @@ float PIDhandler::updatePID(float val, uint32_t dt)
 {
 	float error = *reference - val;
 	float dE = (error - lastError) / dt;
-	eSum += error * dt;
-	lastError = error;
+	if (abs(error)>epsilon){
+		eSum += error*dt;
+	}
+	if (abs(error)>=v){
+		output = abs(Kp * error) + Ki * esum + Kd * de;
+	}
+	else{
+		output = Kp * error + Ki * esum + Kd * de;
+	}
+	if (output>reference)
+		output = reference;
+	return (float)(output);
 
-	return (float)(Kp * error + Ki * dE + Kd * eSum);
 }
