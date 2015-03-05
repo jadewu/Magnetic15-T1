@@ -5,6 +5,7 @@
  *      Author: Peter
  */
 
+#include <libsc/k60/battery_meter.h>
 #include <libbase/k60/mcg.h>
 #include <libsc/k60/system.h>
 #include <MySmartCar.h>
@@ -56,8 +57,10 @@ float scaleDiff = 1.265;
 
 float adcToAngleRatio = 10000;
 
-float baseFilterQ = 0.001f;
+float baseFilterQ = 0.00001f;
 float baseFilterR = 1.75f;
+
+Byte lastTurningDirection = 0;
 
 float lpQ = 0.0198f;
 float lpR = 1.0f;
@@ -71,10 +74,12 @@ float adcRealReadingL = 0;
 float adcRealReadingR = 0;
 float servoAngle = 0;
 float retServoAngle = 0;
+float batteryVoltage = 0;
 
-KalmanFilter filterL(baseFilterQ, baseFilterR, 0.5f, 0.5f);
-KalmanFilter filterR(baseFilterQ, baseFilterR, 0.5f, 0.5f);
+KalmanFilter filterL(baseFilterQ, baseFilterR, myCar.myMagSensor0.GetResultF(), 1.0f);
+KalmanFilter filterR(baseFilterQ, baseFilterR, myCar.myMagSensor1.GetResultF(), 1.0f);
 KalmanFilter filterAngle(lpQ, lpR, 0.5f, 0.5f);
+BatteryMeter batteryMng({1.0f});
 
 PIDhandler turningPID(0.0f, 2650.0f, 0.0f, 0.0f);
 
@@ -182,19 +187,35 @@ void FilterProc()
 	adcReadingL = filterL.Filter(adcRealReadingL);
 	adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
 	adcReadingR = filterR.Filter(adcRealReadingR);
-	retServoAngle = turningPID.updatePID(adcReadingL - adcReadingR, 2);
-	retServoAngle = filterAngle.Filter(retServoAngle);
+	retServoAngle = turningPID.updatePID(adcReadingL - adcReadingR, 1);
 }
 
 void applyResult()
 {
-	myCar.turn((int16_t)retServoAngle);
+	if (retServoAngle)
+		lastTurningDirection = 1;
+	else
+		lastTurningDirection = 2;
+
+	if (abs(retServoAngle) < 180)
+		retServoAngle = 0;
+
+	if(adcReadingL < 0.16 && adcReadingR < 0.16f)
+	{
+		if (lastTurningDirection == 1)
+			myCar.turn(-MAX_SERVO_TURNING_DEGREE);
+		else if (lastTurningDirection == 2)
+			myCar.turn(MAX_SERVO_TURNING_DEGREE);
+	}
+	else
+		myCar.turn(retServoAngle);
 }
 
 void sendData()
 {
-	lpP = turningPID.getKp();
-	lpD = turningPID.getKd();
+//	lpP = turningPID.getKp();
+//	lpD = turningPID.getKd();
+	batteryVoltage = batteryMng.GetVoltage();
 	myCar.myVarMng.sendWatchData();
 	myCar.doBlink(0);
 }
@@ -205,28 +226,36 @@ int main()
 //	lcdConfig.lcd = &myCar.myLcd;
 //	LcdConsole myConsole(lcdConfig);
 
-//	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
-//	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
+	myCar.myVarMng.addWatchedVar(&adcRealReadingL, "0");
+	myCar.myVarMng.addWatchedVar(&adcRealReadingR, "0");
+
+	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
+	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
 
 	myCar.myVarMng.addWatchedVar(&baseFilterQ, "3");
-	myCar.myVarMng.addWatchedVar(&baseFilterR, "3");
-
-	myCar.myVarMng.addWatchedVar(&lpP, "0");
-	myCar.myVarMng.addWatchedVar(&lpD, "0");
+//	myCar.myVarMng.addWatchedVar(&baseFilterR, "3");
 //
-	myCar.myVarMng.addWatchedVar(&retServoAngle, "2");
+//	myCar.myVarMng.addWatchedVar(&lpP, "0");
+//	myCar.myVarMng.addWatchedVar(&lpD, "0");
+////
+//	myCar.myVarMng.addWatchedVar(&retServoAngle, "2");
+//
+//
+//	myCar.myVarMng.addWatchedVar(&scaleDiff, "3");
+//
+//	myCar.myVarMng.addWatchedVar(&lpQ, "2");
+//	myCar.myVarMng.addWatchedVar(&lpR, "3");
 
-
-	myCar.myVarMng.addWatchedVar(&scaleDiff, "3");
-
-	myCar.myVarMng.addWatchedVar(&lpQ, "2");
-	myCar.myVarMng.addWatchedVar(&lpR, "3");
+//	myCar.myVarMng.addWatchedVar(&batteryVoltage, "4");
 
 	myCar.myVarMng.Init(&kfTestingFunction);
 
 	myCar.myLoop.addFunctionToLoop(&FilterProc, 1, LOOP_EVERYTIME);
 	myCar.myLoop.addFunctionToLoop(&applyResult, LOOP_IMMEDIATELY, LOOP_EVERYTIME);
 	myCar.myLoop.addFunctionToLoop(&sendData, LOOP_IMMEDIATELY, 10);
+
+//	System::DelayMs(2000);
+//	myCar.setSpeed(160);
 
 	myCar.myLoop.start();
 
