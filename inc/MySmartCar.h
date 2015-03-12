@@ -27,12 +27,15 @@
 #include "MyMotor.h"
 #include "MyServo.h"
 #include "MyConfig.h"
+#include "MyVar.h"
 
 using namespace libsc::k60;
 using namespace libbase::k60;
+using namespace std;
 
 #define	inRange(n, v, x) ((v > x)? x : ((v < n)? n : v))
 #define outRangeOf(v, ov, r) ((v - ov < -r || v - ov > r)? v : 0)
+#define abs(v) ((v > 0)? v : -v)
 
 #define MIN_MOTOR_POWER	0
 #define MAX_MOTOR_POWER	1000
@@ -52,20 +55,23 @@ class MySmartCar
 
 public:
 
-	MySmartCar(MyConfig &config);
+	MySmartCar(MyConfig &config, MyVar &vars);
+
+	void startMainLoop(void);
 
 	std::vector<Led> getLeds();
 
 	void reset(void);
 
+	MyVarManager		myVarMng;
+
 private:
 
 #ifdef LIBSC_USE_LED
-	std::vector<Led>	myLeds;
+	vector<Led>	myLeds;
 #endif
-	MyVarManager		myVarMng;
 	MyLoop				myLoop;
-	MyServo				myEncoder;
+	MyServo				myServo;
 	MyMotor				myMotor;
 
 	MyConfig::SmartCarPowerMode		*m_powerMode;

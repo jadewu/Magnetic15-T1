@@ -12,6 +12,8 @@
 #include <functional>
 #include <utility>
 
+
+#include <libsc/k60/system.h>
 #include <libsc/k60/ftdi_ft232r.h>
 #include <libbase/k60/sys_tick.h>
 #include <libsc/k60/jy_mcu_bt_106.h>
@@ -19,7 +21,7 @@
 #include "MyVarManager.h"
 
 // TODO: enable following preprocessor command
-#ifdef LIBSC_USE_UART
+//#ifdef LIBSC_USE_UART
 
 using namespace libbase::k60;
 using namespace libsc::k60;
@@ -169,4 +171,4 @@ void MyVarManager::UnInit(void)
 	m_origin_listener = nullptr;
 }
 
-#endif /* LIBSC_USE_UART */
+//#endif /* LIBSC_USE_UART */

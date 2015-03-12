@@ -10,9 +10,10 @@
 #include <functional>
 #include <vector>
 
-#include <libsc/k60/timer.h>
+#include <libsc/k60/system.h>
 
 using namespace libsc::k60;
+using namespace std;
 
 #define LOOP_IMMEDIATELY	0
 #define LOOP_EVERYTIME		1
@@ -29,20 +30,20 @@ public:
 	 * function:
 	 * void (Timer::TimerInt timeError)
 	 */
-	typedef std::function<void (void)> LoopFunction;
+	typedef function<void (void)> LoopFunction;
 
 	MyLoop();
 
 	void start(void);
 
-	void addFunctionToLoop(const LoopFunction &func, Timer::TimerInt delay, uint16_t every);
+	void addFunctionToLoop(const LoopFunction &func, Timer::TimerInt delay, uint16_t often);
 
 private:
 
-	std::vector<LoopFunction>		m_function_list;
-	std::vector<Timer::TimerInt>	m_delay_list;
-	std::vector<uint16_t>			m_every_list;
-	std::vector<uint16_t>			m_counter_list;
+	vector<LoopFunction>			m_function_list;
+	vector<Timer::TimerInt>			m_delay_list;
+	vector<uint16_t>				m_often_list;
+	vector<uint16_t>				m_counter_list;
 
 	Timer::TimerInt					m_start_time;
 	Timer::TimerInt					m_last_time;

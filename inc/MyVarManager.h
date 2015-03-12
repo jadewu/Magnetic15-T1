@@ -11,7 +11,7 @@
 #pragma once
 
 // TODO: enable following preprocessor command
-#ifdef LIBSC_USE_UART
+//#ifdef LIBSC_USE_UART
 
 #include <typeinfo>
 #include <string.h>
@@ -128,4 +128,4 @@ private:
 
 };
 
-#endif /* LIBSC_USE_UART */
+//#endif /* LIBSC_USE_UART */
