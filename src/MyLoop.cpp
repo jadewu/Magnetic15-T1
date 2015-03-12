@@ -1,19 +1,19 @@
 /*
- * Loop.cpp
+ * MyLoop.cpp
  *
  *  Created on: Feb 28, 2015
  *      Author: Peter
  */
 
-#include "Loop.h"
 #include <libsc/k60/system.h>
+#include "MyLoop.h"
 
-Loop::Loop(void)
+MyLoop::MyLoop(void)
 :
 	m_start_time(0)
 {}
 
-void Loop::addFunctionToLoop(const LoopFunction &func, Timer::TimerInt delay, uint16_t every)
+void MyLoop::addFunctionToLoop(const LoopFunction &func, Timer::TimerInt delay, uint16_t every)
 {
 	m_function_list.push_back(func);
 	m_delay_list.push_back(delay);
@@ -28,7 +28,7 @@ void DelayMsByTicks(Timer::TimerInt delay)
 	while (Timer::TimeDiff(startTime, System::Time()) < delay);
 }
 
-void Loop::start(void)
+void MyLoop::start(void)
 {
 	Timer::TimerInt timeDiff = 0;
 

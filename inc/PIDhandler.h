@@ -1,28 +1,24 @@
 /*
- * PID.h
+ * PIDhandler.h
  *
  *  Created on: Jan 15, 2015
  *      Author: Peter
  */
 
-#include <libsc/k60/system.h>
+#include <libsc/k60/sys_tick_timer.h>
 
-#ifndef INC_PID_H_
-#define INC_PID_H_
+#pragma once
 
 #define MAX(a, b) ((a > b)? a : b)
+
+using namespace libsc::k60;
 
 class PIDhandler
 {
 public:
 
-	explicit PIDhandler(float *ref, float kp, float ki, float kd);
-	explicit PIDhandler(float ref, float kp, float ki, float kd);
-	float updatePID(float val, uint32_t dt);
-
-	void setKp(float kp);
-	void setKi(float ki);
-	void setKd(float kd);
+	explicit PIDhandler(float *ref, float *kp, float *ki, float *kd);
+	float updatePID(float val, Timer::TimerInt dt);
 
 	float getKp(void);
 	float getKi(void);
@@ -33,12 +29,9 @@ public:
 private:
 
 	float *reference;
-	float Kp;
-	float Ki;
-	float Kd;
+	float *Kp;
+	float *Ki;
+	float *Kd;
 	float eSum;
 	float lastError;
 };
-
-
-#endif /* INC_PID_H_ */

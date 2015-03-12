@@ -47,41 +47,7 @@ using namespace libutil;
 using namespace std;
 
 
-MySmartCar myCar;
-
-#define timeInterval 	2
-#define standardVoltage	0.8f
-#define midDegree		900
-
-float scaleDiff = 1.265;
-
-float adcToAngleRatio = 10000;
-
-float baseFilterQ = 0.00001f;
-float baseFilterR = 1.75f;
-
-Byte lastTurningDirection = 0;
-
-float lpQ = 0.0198f;
-float lpR = 1.0f;
-
-float lpP = 0;
-float lpD = 0;
-
-float adcReadingL = 0;
-float adcReadingR = 0;
-float adcRealReadingL = 0;
-float adcRealReadingR = 0;
-float servoAngle = 0;
-float retServoAngle = 0;
-float batteryVoltage = 0;
-
-KalmanFilter filterL(baseFilterQ, baseFilterR, myCar.myMagSensor0.GetResultF(), 1.0f);
-KalmanFilter filterR(baseFilterQ, baseFilterR, myCar.myMagSensor1.GetResultF(), 1.0f);
-KalmanFilter filterAngle(lpQ, lpR, 0.5f, 0.5f);
-BatteryMeter batteryMng({1.0f});
-
-PIDhandler turningPID(0.0f, 2650.0f, 0.0f, 0.0f);
+MySmartCar myCar(MySmartCar::SmartCarMode::kNormalMode);
 
 void kfTestingFunction(const Byte *bytes, const size_t size)
 {
@@ -152,20 +118,20 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 		break;
 
 	case 'e':
-		myCar.doBlink(0);
+//		myCar.doBlink(0);
 		break;
 
 	case 'u':
-		myCar.setSpeed(160);
+//		myCar.setSpeed(160);
 //		adcToAngleRatio += 1000;
 		break;
 	case 'j':
-		myCar.setSpeed(0);
+//		myCar.setSpeed(0);
 //		if (adcToAngleRatio >= 1000)
 //			adcToAngleRatio -= 1000;
 		break;
 	case 'm':
-		myCar.setSpeed(-160);
+//		myCar.setSpeed(-160);
 		break;
 
 	case 'h':
@@ -176,16 +142,16 @@ void kfTestingFunction(const Byte *bytes, const size_t size)
 		scaleDiff -= 0.005f;
 		break;
 
-	case 'b':
-		myCar.turn(0);
+//	case 'b':
+//		myCar.turn(0);
 	}
 }
 
 void FilterProc()
 {
-	adcRealReadingL = myCar.myMagSensor0.GetResultF();
+//	adcRealReadingL = myCar.myMagSensor0.GetResultF();
 	adcReadingL = filterL.Filter(adcRealReadingL);
-	adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
+//	adcRealReadingR = myCar.myMagSensor1.GetResultF() * scaleDiff;
 	adcReadingR = filterR.Filter(adcRealReadingR);
 	retServoAngle = turningPID.updatePID(adcReadingL - adcReadingR, 1);
 }
@@ -200,15 +166,15 @@ void applyResult()
 	if (abs(retServoAngle) < 180)
 		retServoAngle = 0;
 
-	if(adcReadingL < 0.16 && adcReadingR < 0.16f)
-	{
-		if (lastTurningDirection == 1)
-			myCar.turn(-MAX_SERVO_TURNING_DEGREE);
-		else if (lastTurningDirection == 2)
-			myCar.turn(MAX_SERVO_TURNING_DEGREE);
-	}
-	else
-		myCar.turn(retServoAngle);
+//	if(adcReadingL < 0.16 && adcReadingR < 0.16f)
+//	{
+//		if (lastTurningDirection == 1)
+//			myCar.turn(-MAX_SERVO_TURNING_DEGREE);
+//		else if (lastTurningDirection == 2)
+//			myCar.turn(MAX_SERVO_TURNING_DEGREE);
+//	}
+//	else
+//		myCar.turn(retServoAngle);
 }
 
 void sendData()
@@ -216,8 +182,8 @@ void sendData()
 //	lpP = turningPID.getKp();
 //	lpD = turningPID.getKd();
 	batteryVoltage = batteryMng.GetVoltage();
-	myCar.myVarMng.sendWatchData();
-	myCar.doBlink(0);
+//	myCar.myVarMng.sendWatchData();
+//	myCar.doBlink(0);
 }
 
 int main()
@@ -226,13 +192,13 @@ int main()
 //	lcdConfig.lcd = &myCar.myLcd;
 //	LcdConsole myConsole(lcdConfig);
 
-	myCar.myVarMng.addWatchedVar(&adcRealReadingL, "0");
-	myCar.myVarMng.addWatchedVar(&adcRealReadingR, "0");
-
-	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
-	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
-
-	myCar.myVarMng.addWatchedVar(&baseFilterQ, "3");
+//	myCar.myVarMng.addWatchedVar(&adcRealReadingL, "0");
+//	myCar.myVarMng.addWatchedVar(&adcRealReadingR, "0");
+//
+//	myCar.myVarMng.addWatchedVar(&adcReadingL, "0");
+//	myCar.myVarMng.addWatchedVar(&adcReadingR, "0");
+//
+//	myCar.myVarMng.addWatchedVar(&baseFilterQ, "3");
 //	myCar.myVarMng.addWatchedVar(&baseFilterR, "3");
 //
 //	myCar.myVarMng.addWatchedVar(&lpP, "0");
@@ -248,16 +214,18 @@ int main()
 
 //	myCar.myVarMng.addWatchedVar(&batteryVoltage, "4");
 
-	myCar.myVarMng.Init(&kfTestingFunction);
-
-	myCar.myLoop.addFunctionToLoop(&FilterProc, 1, LOOP_EVERYTIME);
-	myCar.myLoop.addFunctionToLoop(&applyResult, LOOP_IMMEDIATELY, LOOP_EVERYTIME);
-	myCar.myLoop.addFunctionToLoop(&sendData, LOOP_IMMEDIATELY, 10);
+//	myCar.myVarMng.Init(&kfTestingFunction);
+//
+//	myCar.myLoop.addFunctionToLoop(&FilterProc, 1, LOOP_EVERYTIME);
+//	myCar.myLoop.addFunctionToLoop(&applyResult, LOOP_IMMEDIATELY, LOOP_EVERYTIME);
+//	myCar.myLoop.addFunctionToLoop(&sendData, LOOP_IMMEDIATELY, 10);
 
 //	System::DelayMs(2000);
 //	myCar.setSpeed(160);
 
-	myCar.myLoop.start();
+//	myCar.myLoop.start();
+
+	while (true);
 
 	return 0;
 }

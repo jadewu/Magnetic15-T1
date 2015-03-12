@@ -1,12 +1,11 @@
 /*
- * Loop.h
+ * MyLoop.h
  *
  *  Created on: Feb 28, 2015
  *      Author: Peter
  */
 
-#ifndef INC_LOOP_H_
-#define INC_LOOP_H_
+#pragma once
 
 #include <functional>
 #include <vector>
@@ -22,7 +21,7 @@ using namespace libsc::k60;
 
 void DelayMsByTicks(Timer::TimerInt delay);
 
-class Loop
+class MyLoop
 {
 public:
 
@@ -32,7 +31,7 @@ public:
 	 */
 	typedef std::function<void (void)> LoopFunction;
 
-	Loop();
+	MyLoop();
 
 	void start(void);
 
@@ -49,5 +48,3 @@ private:
 	Timer::TimerInt					m_last_time;
 
 };
-
-#endif /* INC_LOOP_H_ */

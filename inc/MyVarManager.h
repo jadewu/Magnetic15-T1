@@ -1,5 +1,5 @@
 /*
- * VarManager.h
+ * MyVarManager.h
  *
  * Author: PeterLau
  * Version: 2.8.0
@@ -8,24 +8,24 @@
  * Refer to LICENSE for details
  */
 
-#ifndef INC_VARMANAGER_H_
+#pragma once
 
 // TODO: enable following preprocessor command
-//#ifdef LIBSC_USE_UART
-#define INC_VARMANAGER_H_
+#ifdef LIBSC_USE_UART
+
+#include <typeinfo>
+#include <string.h>
+#include <cxxabi.h>
 
 #include <libsc/k60/system.h>
 #include <libsc/k60/ftdi_ft232r.h>
 #include <libbase/k60/sys_tick.h>
 #include <libsc/k60/jy_mcu_bt_106.h>
-#include <typeinfo>
-#include <string.h>
-#include <cxxabi.h>
 
 using namespace libsc::k60;
 using namespace libbase::k60;
 
-class VarManager
+class MyVarManager
 {
 public:
 
@@ -74,8 +74,8 @@ public:
 		static TypeId *m_instance;
 	};
 
-	explicit VarManager(void);
-	~VarManager(void);
+	explicit MyVarManager(void);
+	~MyVarManager(void);
 
 	void Init(void);
 	void Init(const JyMcuBt106::OnReceiveListener &oriListener);
@@ -117,7 +117,7 @@ private:
 
 	std::vector<Byte>				rx_buffer;
 
-	static void listener(const Byte *bytes, const size_t size);
+	static bool listener(const std::vector<Byte> &bytes);
 
 	SysTick::Config getTimerConfig(void);
 	JyMcuBt106::Config get106UartConfig(const uint8_t id);
@@ -128,5 +128,4 @@ private:
 
 };
 
-//#endif /* LIBSC_USE_UART */
-#endif /* INC_VARMANAGER_H_ */
+#endif /* LIBSC_USE_UART */

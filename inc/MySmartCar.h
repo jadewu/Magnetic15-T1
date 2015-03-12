@@ -5,8 +5,9 @@
  *      Author: Peter
  */
 
-#ifndef SRC_MYSMARTCAR_H_
-#define SRC_MYSMARTCAR_H_
+#pragma once
+
+#include <vector>
 
 #include <libsc/k60/system.h>
 #include <libsc/k60/led.h>
@@ -21,22 +22,20 @@
 #include <libsc/k60/trs_d05.h>
 #include <libsc/k60/ab_encoder.h>
 
-#include "VarManager.h"
-#include "Loop.h"
-
-#include <vector>
+#include "MyLoop.h"
+#include "MyVarManager.h"
+#include "MyMotor.h"
+#include "MyServo.h"
+#include "MyConfig.h"
 
 using namespace libsc::k60;
+using namespace libbase::k60;
 
 #define	inRange(n, v, x) ((v > x)? x : ((v < n)? n : v))
 #define outRangeOf(v, ov, r) ((v - ov < -r || v - ov > r)? v : 0)
 
 #define MIN_MOTOR_POWER	0
 #define MAX_MOTOR_POWER	1000
-
-#define MID_SERVO_DEGREE 			900
-#define MIN_SERVO_TURNING_DEGREE 	0
-#define MAX_SERVO_TURNING_DEGREE	750
 
 #define CMD_FORWARD		0
 #define CMD_BACKWARD	1
@@ -48,51 +47,30 @@ using namespace libsc::k60;
 #define CMD_SETANGLE	7
 #define CMD_SETSPEED	8
 
-
 class MySmartCar
 {
+
 public:
 
-	MySmartCar(void);
+	MySmartCar(MyConfig &config);
+
+	std::vector<Led> getLeds();
 
 	void reset(void);
 
-	void setSpeed(const int16_t speed);
-	void turnLeft(const uint16_t degree_x10);
-	void turnRight(const uint16_t degree_x10);
-	void turn(const int16_t degree_x10);
-	void doBlink(Byte id);
-
-	void plotData(const Byte *data, const size_t len);
-	static void ExecuteCommand(const Byte *bytes, const size_t size);
-
-	bool				btStarted = true;
-
-	Loop				myLoop;
-
-	VarManager			myVarMng;
-	Adc					myMagSensor0;
-	Adc					myMagSensor1;
-	St7735r				myLcd;
-	TrsD05				myServo;
-//	AbEncoder			myEncoder;
-
 private:
 
-	DirMotor			myMotor;
-//	AlternateMotor		myMotor;
-//	FtdiFt232r			myUart;
-	Mma8451q			myAccel;
+#ifdef LIBSC_USE_LED
 	std::vector<Led>	myLeds;
+#endif
+	MyVarManager		myVarMng;
+	MyLoop				myLoop;
+	MyServo				myEncoder;
+	MyMotor				myMotor;
 
-	bool				isClockWise;
-	uint16_t			car_speed;
-	uint16_t			turning_angle;
-	int16_t				old_degree_x10;
+	MyConfig::SmartCarPowerMode		*m_powerMode;
+	MyConfig::SmartCarTurningMode	*m_turningMode;
 
-	void ledInit(void);
-	void magSensorInit(void);
+	void doBlink(Byte id);
 
 };
-
-#endif /* SRC_MYSMARTCAR_H_ */
