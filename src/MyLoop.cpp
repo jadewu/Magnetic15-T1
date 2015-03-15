@@ -47,9 +47,9 @@ void MyLoop::start(void)
 			if (m_counter_list[i] >= m_often_list[i])
 			{
 				((LoopFunction)m_function_list[i])();
-				DelayMsByTicks(m_delay_list[i]);
 				m_counter_list[i] = 0;
 			}
+			DelayMsByTicks(m_delay_list[i]);
 			(m_counter_list[i])++;
 		}
 	}

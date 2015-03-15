@@ -38,6 +38,7 @@ JyMcuBt106::Config MyVarManager::get106UartConfig(const uint8_t id)
 	config.rx_irq_threshold = rx_threshold;
 	config.is_rx_irq_threshold_percentage = false;
 	config.tx_buf_size = 50;
+	config.rx_isr = &listener;
 	return config;
 }
 

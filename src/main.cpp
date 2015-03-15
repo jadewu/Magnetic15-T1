@@ -58,6 +58,7 @@ int main()
 {
 	myCar.myVarMng.addWatchedVar(globalVars.MagSenSDLeft, "asd");
 	myCar.myVarMng.addWatchedVar(globalVars.MagSenSDRight, "asd");
+	myCar.myVarMng.addWatchedVar(globalVars.speed, "asd");
 	myCar.myVarMng.Init();
 
 	myCar.startMainLoop();

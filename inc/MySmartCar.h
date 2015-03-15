@@ -21,6 +21,7 @@
 #include <libsc/k60/futaba_s3010.h>
 #include <libsc/k60/trs_d05.h>
 #include <libsc/k60/ab_encoder.h>
+#include <libsc/k60/button.h>
 
 #include "MyLoop.h"
 #include "MyVarManager.h"
@@ -55,11 +56,13 @@ class MySmartCar
 
 public:
 
+	Button::Config getButtonConfig(const uint8_t id);
+
 	MySmartCar(MyConfig &config, MyVar &vars);
 
-	void startMainLoop(void);
+	static void showValue(void);
 
-	std::vector<Led> getLeds();
+	void startMainLoop(void);
 
 	void reset(void);
 
@@ -70,6 +73,10 @@ private:
 #ifdef LIBSC_USE_LED
 	vector<Led>	myLeds;
 #endif
+#ifdef LIBSC_USE_BUTTON
+	vector<Button> myButtons;
+#endif
+
 	MyLoop				myLoop;
 	MyServo				myServo;
 	MyMotor				myMotor;
@@ -77,6 +84,15 @@ private:
 	MyConfig::SmartCarPowerMode		*m_powerMode;
 	MyConfig::SmartCarTurningMode	*m_turningMode;
 
+	void controlRoutine(void);
+
+	vector<Led> getLeds(void);
+	vector<Button> getButtons(void);
+
+	static void onButtonPress(const uint8_t id);
+
 	void doBlink(Byte id);
+
+	bool				m_isStarted;
 
 };
